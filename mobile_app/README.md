@@ -2,9 +2,11 @@
 
 Aplicativo móvel acadêmico de turismo comunitário, economia solidária e feiras locais. O projeto conecta visitantes, expositores e guias em uma experiência com feed social, cupons, mapa de Pinhais, rotas turísticas, lista de interesses e perfil personalizado.
 
-A interface nasceu do protótipo **FeiTUR - Recriação do App Libersol**, desenvolvido no Figma, e evoluiu para o aplicativo **LiberRotas** em React Native com Expo `57.0.19`/SDK 57.
+A interface nasceu do protótipo **FeiTUR - Recriação do App Libersol**, desenvolvido no Figma, e evoluiu para o aplicativo **LiberRotas** em React Native com Expo `57.0.20`/SDK 57.
 
-> Estado técnico revalidado em **01/09/2026**.
+> Estado técnico revalidado em **04/09/2026**.
+
+Preparação de APK/AAB: [BUILD_MOBILE.md](BUILD_MOBILE.md). Evidências e pendências desta retomada: [RETOMADA_2026-09-04.md](../backend_trq_bec/docs/RETOMADA_2026-09-04.md).
 
 ## Objetivo acadêmico
 
@@ -204,7 +206,7 @@ Visitante e Empreendedor são as únicas opções do cadastro público. O tipo e
 
 ## Tecnologias
 
-- Expo `57.0.19`/SDK 57;
+- Expo `57.0.20`/SDK 57;
 - React `19.2.3`;
 - React Native `0.86.3`;
 - TypeScript 6 em modo estrito;
@@ -674,12 +676,13 @@ npx.cmd expo config --type public
 npm.cmd audit --omit=dev
 ```
 
-Resultado reconferido em 01/09/2026:
+Resultado reconferido em 04/09/2026:
 
-- Vitest: `34` testes aprovados para transporte HTTP, renovação de claims,
+- Vitest: `44` testes aprovados para transporte HTTP, renovação de claims,
   revogação de sessão, diretório, comunidade, instituições, marketplace, fluxo
   TRQ-BEC, mensagens, bloqueios e suporte;
 - regras Firestore: aprovadas separadamente com `npm run test:firestore` no emulador local; essa suíte não faz parte da contagem Vitest e sua quantidade de asserts não é fixada neste documento;
+- interface: os 44 testes incluem 10 casos de renderização do painel autorizado na Web, cobrindo carregamento, função, estado de acesso, dispositivo, permissões adicionais e seleção de ferramenta. As dependências de sessão e navegação são simuladas; isso não substitui navegação autenticada nem testes nativos;
 - TypeScript: aprovado;
 - ESLint: aprovado;
 - compatibilidade Expo: aprovada com `npx expo install --check`;

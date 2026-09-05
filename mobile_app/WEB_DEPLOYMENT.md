@@ -58,16 +58,16 @@ npm ci
 npm run lint
 npx tsc --noEmit
 npx expo install --check
-$env:EXPO_NO_DOTENV = "1"
 $env:EXPO_PUBLIC_TRQ_BEC_API_URL = "https://api.liberrotas.com.br"
 npx expo export --platform web --output-dir dist --clear
-Remove-Item Env:EXPO_NO_DOTENV
 Remove-Item Env:EXPO_PUBLIC_TRQ_BEC_API_URL
 ```
 
 O resultado é criado em `mobile_app/dist`. O `--clear` evita reaproveitar um
-bundle antigo com URL local. `EXPO_NO_DOTENV=1` impede que `.env.local` seja
-lido pelo build de produção.
+bundle antigo com URL local. Neste export manual, o Expo lê as seis variáveis
+`EXPO_PUBLIC_FIREBASE_*` de `.env.local`; confira o projeto Firebase antes de
+exportar. O build Docker abaixo desativa essa leitura e recebe os valores
+públicos explicitamente pelo Compose.
 
 ## 2. Build usado pelo Docker
 
@@ -81,7 +81,7 @@ a imagem Web:
 
 ```powershell
 Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
-docker compose build web
+docker compose --env-file .env --env-file ../mobile_app/.env.local build web
 ```
 
 Para iniciar toda a pilha, volte à raiz e use:

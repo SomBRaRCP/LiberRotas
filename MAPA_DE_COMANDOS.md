@@ -2,13 +2,13 @@
 
 Este mapa considera o ambiente Windows atual:
 
-> Revisado em 01/09/2026. Os pacotes históricos `v0.5.x` não participam destes comandos.
+> Revisado em 04/09/2026. Os pacotes históricos `v0.5.x` não participam destes comandos.
 
 - Web de produção no Docker: `http://127.0.0.1:8081`;
 - API local no Docker: `http://127.0.0.1:8787`;
 - API pública usada pelo celular: `https://api.liberrotas.com.br`;
 - Expo/Metro para desenvolvimento mobile: porta `8082`;
-- aplicativo: Expo `57.0.19`/SDK 57, React Native `0.86.3` e React `19.2.3`.
+- aplicativo: Expo `57.0.20`/SDK 57, React Native `0.86.3` e React `19.2.3`.
 
 ## Visão rápida
 
@@ -355,9 +355,9 @@ npx.cmd expo install --check
 npm.cmd audit --omit=dev
 ```
 
-`npm.cmd test` executa os `34` testes Vitest. `npm.cmd run test:firestore` inicia um emulador local com projeto de demonstração e valida `firestore.rules` separadamente; ele exige JDK 21 e não deve acessar nem alterar o projeto Firebase real. Não associe uma quantidade de asserts a essa suíte, pois ela pode evoluir independentemente do Vitest.
+`npm.cmd test` executa os `44` testes Vitest. `npm.cmd run test:firestore` inicia um emulador local com projeto de demonstração e valida `firestore.rules` separadamente; ele exige JDK 21 e não deve acessar nem alterar o projeto Firebase real. Não associe uma quantidade de asserts a essa suíte, pois ela pode evoluir independentemente do Vitest.
 
-Em 01/09/2026, Expo Doctor passou `21/21`. A auditoria da árvore de produção registrou `3` vulnerabilidades moderadas e `0` altas ou críticas, originadas na cadeia upstream do `expo-router`. Não use `npm audit fix --force` para tentar removê-las.
+Em 04/09/2026, Expo Doctor passou `21/21`. A auditoria da árvore de produção registrou `3` vulnerabilidades moderadas e `0` altas ou críticas, originadas na cadeia upstream do `expo-router`. Não use `npm audit fix --force` para tentar removê-las.
 
 Na pasta `backend_trq_bec`, execute:
 
@@ -369,6 +369,12 @@ Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 O resultado atual é `197 testes` e `63 subtestes`; o OpenAPI contém `94` caminhos e `106` operações.
 
 ## 10. GitHub e entrega acadêmica
+
+Abra `LiberRotas.code-workspace` para carregar a configuração da IDE. Em **Terminal > Executar Tarefa > LiberRotas: validacao completa**, a sequência inclui também as regras Firestore com JDK 21.
+
+Na raiz, `./scripts/proteger-ambiente-local.ps1` restringe as permissões de `.env`, `.env.backend` e `.env.local`, guardando as ACLs anteriores em `backend_trq_bec/backups/windows-acl`. Não altera seus valores.
+
+Para preparar a conta EAS e gerar APK, siga [mobile_app/BUILD_MOBILE.md](mobile_app/BUILD_MOBILE.md). A exportação Android aprovada nesta retomada ainda não é um APK.
 
 O repositório oficial é privado: [https://github.com/SomBRaRCP/LiberRotas](https://github.com/SomBRaRCP/LiberRotas). O GitHub mantém commits, branches e o histórico do desenvolvimento.
 

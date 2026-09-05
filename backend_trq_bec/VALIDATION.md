@@ -1,8 +1,10 @@
-# Validação atual do backend — 1 de setembro de 2026
+# Validação atual do backend — 4 de setembro de 2026
 
 Este registro descreve o que foi verificado no workspace atual. Ele não substitui
 homologação externa, teste de carga, auditoria independente ou teste manual em
 aparelhos reais.
+
+O [registro de retomada de 04/09/2026](docs/RETOMADA_2026-09-04.md) detalha os limites e as pendências. Probes PostgreSQL/Redis com gravação de dados de ensaio não foram repetidos nesta retomada.
 
 ## Ambiente conferido
 
@@ -79,10 +81,10 @@ npx.cmd expo install --check
 npm.cmd audit --omit=dev
 ```
 
-A suíte Vitest contém `34` testes em `9` arquivos para transporte HTTP, diretório, comunidade,
+A suíte Vitest contém `44` testes em `10` arquivos para transporte HTTP, diretório, comunidade,
 instituições, marketplace, fluxo TRQ-BEC, mensagens, cache de mídia, bloqueios e chamados de suporte. A validação das regras Firestore é executada separadamente por `npm.cmd run test:firestore`, com emulador local e sem entrar na contagem do Vitest.
 
-Em 01/09/2026, TypeScript e ESLint foram aprovados; Expo `57.0.19`/SDK 57, React Native `0.86.3` e React `19.2.3` foram confirmados; Expo Doctor passou `21/21`. `npm audit --omit=dev` registrou `3` vulnerabilidades moderadas e `0` altas ou críticas na cadeia upstream do `expo-router`. Não use `npm audit fix --force`, pois a troca proposta é incompatível com a árvore Expo atual.
+Em 04/09/2026, TypeScript e ESLint foram aprovados; Expo `57.0.20`/SDK 57, React Native `0.86.3` e React `19.2.3` foram confirmados; Expo Doctor passou `21/21`. `npm audit --omit=dev` registrou `3` vulnerabilidades moderadas e `0` altas ou críticas na cadeia upstream do `expo-router`. Não use `npm audit fix --force`, pois a troca proposta é incompatível com a árvore Expo atual.
 
 Depois faça o teste manual com contas distintas:
 

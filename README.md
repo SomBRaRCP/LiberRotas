@@ -8,22 +8,22 @@ Workspace acadêmico que reúne o aplicativo **LiberRotas**, evoluído a partir 
 
 ## Estado desta instalação
 
-Instalação revalidada neste computador em **01/09/2026**:
+Estado consolidado em **04/09/2026**. Consulte o [registro da retomada](backend_trq_bec/docs/RETOMADA_2026-09-04.md) para evidências e pendências. Probes históricos estão identificados abaixo:
 
 - Node.js `24.19.0` e npm `11.17.0` encontrados;
 - dependências do aplicativo instaladas em `mobile_app\node_modules`;
 - TypeScript e ESLint aprovados;
-- Expo `57.0.19`/SDK 57, React Native `0.86.3` e React `19.2.3` alinhados; `expo install --check` e Expo Doctor `21/21` aprovados;
+- Expo `57.0.20`/SDK 57, React Native `0.86.3` e React `19.2.3` alinhados; `expo install --check` e Expo Doctor `21/21` aprovados;
 - `npm audit --omit=dev` registrou `3` vulnerabilidades moderadas e `0` altas ou críticas na árvore de produção; a cadeia é transitiva do `expo-router` e não deve ser corrigida com `--force` enquanto não houver solução compatível upstream;
 - exportação Web gerada com as rotas públicas e os painéis protegidos;
 - Python `3.13.5` encontrado;
 - ambiente virtual criado em `backend_trq_bec\.venv`;
 - dependências do backend e de testes instaladas;
 - suíte completa do backend aprovada com `197 testes` e `63 subtestes`;
-- suíte do aplicativo aprovada com `34 testes`, TypeScript e ESLint;
-- regras do Firestore aprovadas separadamente pelo emulador local com `npm run test:firestore`; essa suíte não entra na contagem dos 34 testes Vitest;
+- suíte do aplicativo aprovada com `44 testes`, TypeScript e ESLint;
+- regras do Firestore aprovadas separadamente pelo emulador local com `npm run test:firestore`; essa suíte não entra na contagem dos 44 testes Vitest;
 - contrato OpenAPI confirmado com `94` caminhos e `106` operações;
-- Docker Desktop ativo, com Engine `29.6.2` e Compose `5.3.1` no momento da validação; essas versões podem mudar por atualização automática;
+- Docker Desktop ativo, com Engine `29.7.2` e Compose `5.3.1` no momento da validação; essas versões podem mudar por atualização automática;
 - PostgreSQL 16, Redis 7 e API FastAPI executando em contêineres Docker ativos e saudáveis;
 - chaves locais de laboratório geradas em `backend_trq_bec\secrets`;
 - imagem Docker da API construída com sucesso;
@@ -31,8 +31,8 @@ Instalação revalidada neste computador em **01/09/2026**:
 - aplicativo configurado em modo acadêmico local por `mobile_app\.env.local`;
 - migrations `001_initial` até `021_institution_live_fairs` confirmadas no PostgreSQL operacional;
 - fluxo de imagens ativo com Google Cloud Storage privado, formatos JPEG/PNG/WebP, limite de 5 MB e metadados autoritativos no PostgreSQL;
-- probe isolado no PostgreSQL/Redis reais aprovado com `1 ALLOW`, `99 DENY`, estoque `0` e idempotência;
-- probe PostgreSQL de filiação e relatório institucional aprovado, incluindo propriedade do grupo, uma filiação ativa global e janelas históricas;
+- probe histórico (não repetido nesta retomada) no PostgreSQL/Redis reais aprovado com `1 ALLOW`, `99 DENY`, estoque `0` e idempotência;
+- probe histórico (não repetido nesta retomada) PostgreSQL de filiação e relatório institucional aprovado, incluindo propriedade do grupo, uma filiação ativa global e janelas históricas;
 - API publicada somente no loopback em `http://127.0.0.1:8787`;
 - site Web de produção servido por Nginx não privilegiado em `http://127.0.0.1:8081`;
 - API pública respondendo em `https://api.liberrotas.com.br/health/` pelo Cloudflare Tunnel;
@@ -40,11 +40,17 @@ Instalação revalidada neste computador em **01/09/2026**:
 
 O teste de interface com duas contas reais ainda depende de você entrar no app como empreendedor e visitante. A credencial Firebase Admin permanece somente no backend e nunca deve ser enviada por chat, salva no aplicativo ou publicada no Git.
 
+Para abrir a IDE, use `LiberRotas.code-workspace`. A tarefa **LiberRotas: validacao completa**, em **Terminal > Executar Tarefa**, inclui backend, TypeScript, ESLint, testes do app e regras Firestore. O emulador exige JDK 21.
+
+As permissões dos três arquivos de ambiente foram restringidas ao usuário atual, Administradores e SYSTEM. Para reaplicar após recriar esses arquivos, execute `./scripts/proteger-ambiente-local.ps1` na raiz; o script salva as ACLs anteriores em `backend_trq_bec/backups/windows-acl`, sem copiar valores de configuração.
+
+A preparação de APK/AAB está em [BUILD_MOBILE.md](mobile_app/BUILD_MOBILE.md). Faltam login/vínculo EAS, assinatura e homologação física. A auditoria completa de dependências de desenvolvimento também possui alertas moderados; veja o [registro da retomada](backend_trq_bec/docs/RETOMADA_2026-09-04.md).
+
 ## Componentes do workspace
 
 ```text
 LiberRotas_TRQ_BEC_Workspace_v3/
-├── mobile_app/       aplicativo LiberRotas 1.1.0 — Expo 57.0.19/SDK 57 e React Native 0.86.3
+├── mobile_app/       aplicativo LiberRotas 1.1.0 — Expo 57.0.20/SDK 57 e React Native 0.86.3
 ├── backend_trq_bec/  backend TRQ-BEC 0.6.0-alpha.1 — FastAPI, PostgreSQL e Redis
 ├── archive/          wheels e backups históricos, fora do build atual
 ├── scripts/          automação da entrega acadêmica reproduzível
@@ -65,7 +71,7 @@ O wheel histórico `0.5.0a1` foi preservado em `archive/packages/v0.5.0a1` e nã
 
 | Camada | Tecnologia | Uso |
 | --- | --- | --- |
-| Aplicativo | Expo 57.0.19/SDK 57, React 19.2.3, React Native 0.86.3 e TypeScript 6 | telas, navegação, câmera, QR Code e armazenamento local |
+| Aplicativo | Expo 57.0.20/SDK 57, React 19.2.3, React Native 0.86.3 e TypeScript 6 | telas, navegação, câmera, QR Code e armazenamento local |
 | Firebase no aplicativo | Firebase Web SDK, Authentication e Firestore | login/cadastro e sincronização de dados públicos |
 | Backend | Python 3.11+, FastAPI e Uvicorn | API protegida do TRQ-BEC |
 | Firebase no backend | Firebase Admin SDK | validação do ID token e das Custom Claims assinadas |
@@ -153,13 +159,13 @@ O servidor de desenvolvimento do Expo/Metro **não é servidor de produção**. 
 
 ### Variável pública usada no build
 
-A integração já adotada pelo projeto usa uma única variável:
+A URL da API é fixada no build de produção:
 
 ```env
 EXPO_PUBLIC_TRQ_BEC_API_URL=https://api.liberrotas.com.br
 ```
 
-O valor é passado como argumento de build pelo Compose. O `Dockerfile.web` usa `EXPO_NO_DOTENV=1`, exclui `.env*` pelo `.dockerignore` e executa o export com `--clear`, impedindo que o cache do Metro reutilize uma URL local. Variáveis `EXPO_PUBLIC_*` entram no JavaScript do navegador e nunca podem conter senhas, tokens, conta de serviço, chave privada ou credencial administrativa.
+O Compose também recebe as seis variáveis `EXPO_PUBLIC_FIREBASE_*` descritas em `mobile_app/.env.example`. `INICIAR_LIBERROTAS.ps1 -Rebuild` importa essas variáveis de `mobile_app/.env.local`. O `Dockerfile.web` usa `EXPO_NO_DOTENV=1`, recebe somente a configuração pública por argumentos de build, exclui `.env*` pelo `.dockerignore` e executa o export com `--clear`. O validador informa apenas campos ausentes, sem imprimir seus valores. Variáveis `EXPO_PUBLIC_*` entram no JavaScript do navegador e nunca podem conter senhas, tokens, conta de serviço, chave privada ou credencial administrativa.
 
 ### Comando único para iniciar
 
@@ -262,10 +268,8 @@ npm ci
 npm run lint
 npx tsc --noEmit
 npx expo install --check
-$env:EXPO_NO_DOTENV = "1"
 $env:EXPO_PUBLIC_TRQ_BEC_API_URL = "https://api.liberrotas.com.br"
 npx expo export --platform web --output-dir dist --clear
-Remove-Item Env:EXPO_NO_DOTENV
 Remove-Item Env:EXPO_PUBLIC_TRQ_BEC_API_URL
 ```
 
@@ -274,7 +278,7 @@ Backend e Compose, a partir de `backend_trq_bec`:
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests -q
 docker compose config --quiet
-docker compose build web
+docker compose --env-file .env --env-file ../mobile_app/.env.local build web
 docker compose ps
 ```
 
@@ -790,22 +794,20 @@ npm run lint
 npx tsc --noEmit
 npx expo install --check
 npx expo-doctor
-$env:EXPO_NO_DOTENV = "1"
 $env:EXPO_PUBLIC_TRQ_BEC_API_URL = "https://api.liberrotas.com.br"
 npx expo export --platform web --output-dir dist --clear
-Remove-Item Env:EXPO_NO_DOTENV
 Remove-Item Env:EXPO_PUBLIC_TRQ_BEC_API_URL
 npm audit --omit=dev
 ```
 
-Resultado do aplicativo em 01/09/2026:
+Resultado do aplicativo em 04/09/2026:
 
-- `npm.cmd test`: `34` testes Vitest aprovados;
+- `npm.cmd test`: `44` testes Vitest aprovados;
 - `npm.cmd run test:firestore`: regras aprovadas separadamente no emulador local, sem usar o projeto Firebase real;
 - `npx.cmd tsc --noEmit`: aprovado;
 - `npm.cmd run lint`: aprovado;
 - `npx.cmd expo install --check`: aprovado, sem versões pendentes;
-- Expo `57.0.19`/SDK 57, React Native `0.86.3` e React `19.2.3` confirmados;
+- Expo `57.0.20`/SDK 57, React Native `0.86.3` e React `19.2.3` confirmados;
 - `npx.cmd expo-doctor`: `21/21` verificações aprovadas;
 - `npx.cmd expo config --type public`: aprovado; permissões exibem LiberRotas, áudio está desativado e não existe plugin explícito `expo-video`;
 - exportação Web estática: aprovada;
@@ -821,7 +823,7 @@ Execute em `backend_trq_bec`:
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-Resultado confirmado em 01/09/2026: `197 testes` e `63 subtestes` aprovados. O contrato OpenAPI contém `94` caminhos e `106` operações. A suíte cobre a regressão criptográfica e comercial, dispositivos, SMTP, mídia e variantes, seleção pública de imagem por entidade, comentários, eventos institucionais, exclusão de feira com controle de autoria, quantidade assinada e resgate transacional. Os probes com PostgreSQL/Redis reais continuam sendo verificações separadas da suíte unitária.
+Resultado confirmado em 04/09/2026: `197 testes` e `63 subtestes` aprovados. O contrato OpenAPI contém `94` caminhos e `106` operações. A suíte cobre a regressão criptográfica e comercial, dispositivos, SMTP, mídia e variantes, seleção pública de imagem por entidade, comentários, eventos institucionais, exclusão de feira com controle de autoria, quantidade assinada e resgate transacional. Os probes com PostgreSQL/Redis reais continuam sendo verificações separadas da suíte unitária.
 
 O código foi ajustado para não interpretar bits POSIX como permissões NTFS no Python nativo do Windows. A validação POSIX permanece ativa dentro de Linux e dos contêineres Docker.
 

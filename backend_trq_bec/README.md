@@ -312,12 +312,12 @@ trq-bec-openapi --scope public
 trq-bec-openapi --scope internal
 ```
 
-Na validação de **01/09/2026**, o contrato OpenAPI operacional contém `94` caminhos e `106` operações.
+Na validação de **04/09/2026**, o contrato OpenAPI operacional contém `94` caminhos e `106` operações.
 
 ## Limites conhecidos
 
 - As migrations `001_initial.sql` até `021_institution_live_fairs.sql` formam a sequência atual e foram confirmadas no PostgreSQL operacional em 05/08/2026. Antes de um piloto em outro ambiente, a sequência deve ser repetida com backup e plano de reversão.
-- A suíte local foi aprovada em 01/09/2026 com `197 testes` e `63 subtestes`. Ela não substitui ensaios manuais com duas contas, câmera, entrega SMTP, navegador e dispositivo físico.
+- A suíte local foi aprovada em 04/09/2026 com `197 testes` e `63 subtestes`. Ela não substitui ensaios manuais com duas contas, câmera, entrega SMTP, navegador e dispositivo físico.
 - Pedidos, pagamentos, webhooks, estornos e baixa financeira não fazem parte da Fase 1.
 - Resgate comercial final offline é proibido; indisponibilidade do Redis ou do PostgreSQL deve falhar fechado.
 - O provider de laboratório usa arquivos PEM montados como segredo; produção exige KMS/HSM e lifecycle completo.

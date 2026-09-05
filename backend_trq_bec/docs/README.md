@@ -64,6 +64,8 @@ O exportador separa os contratos: o arquivo público não pode conter `/internal
 
 ## Documentação histórica
 
+O [registro da retomada de 04/09/2026](RETOMADA_2026-09-04.md) reúne correções, testes atuais e pendências de dependências, APK e homologação.
+
 Os pacotes abaixo ficam fora desta pasta e permanecem preservados como referência das etapas anteriores:
 
 - `../TRQ_BEC_API_Documentacao_Autoritativa_v0.5.0a1/`;
