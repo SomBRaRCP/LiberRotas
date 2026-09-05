@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trq-bec.local/schemas/intent.v1.json",
+  "title": "TRQ-BEC Intent v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["txn_id", "merchant_id", "amount_minor", "currency", "resource_ref", "purpose"],
+  "properties": {
+    "txn_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "merchant_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "amount_minor": {"type": "integer", "minimum": 1},
+    "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+    "resource_ref": {"type": "string", "minLength": 1, "maxLength": 160},
+    "purpose": {"type": "string", "minLength": 1, "maxLength": 160}
+  }
+}
+

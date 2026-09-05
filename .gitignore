@@ -1,0 +1,55 @@
+# Ferramentas locais
+.agents/
+.codex/
+.codex_tmp/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage/
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Node e Expo
+node_modules/
+.expo/
+.expo-shared/
+web-build/
+*.tsbuildinfo
+
+# Configuracao local e segredos
+.env
+.env.*
+!.env.example
+!.env.backend.example
+secrets/
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.keystore
+**/*service-account*.json
+**/*service_account*.json
+**/application_default_credentials.json
+**/gcloud-credentials*.json
+
+# Backups, logs e pacotes gerados
+.backup-*/
+backups/
+archive/retired-environments/
+tmp/
+*.log
+*.backup-*
+*.zip
+*.whl
+*.tar.gz
+!archive/packages/**/*.whl

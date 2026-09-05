@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trq-bec.local/schemas/crypto-envelope.v1.json",
+  "title": "TRQ-BEC CryptoEnvelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "suite_id", "key_id", "policy_version", "iss", "aud", "purpose", "iat", "exp", "jti", "intent_digest", "signature"],
+  "properties": {
+    "v": {"const": 1},
+    "suite_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "key_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "policy_version": {"type": "string", "minLength": 1, "maxLength": 160},
+    "iss": {"type": "string", "minLength": 1, "maxLength": 160},
+    "aud": {"type": "string", "minLength": 1, "maxLength": 160},
+    "purpose": {"type": "string", "minLength": 1, "maxLength": 160},
+    "iat": {"type": "integer"},
+    "exp": {"type": "integer"},
+    "jti": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+    "intent_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "signature": {"type": "string", "minLength": 1, "maxLength": 4096}
+  }
+}
+

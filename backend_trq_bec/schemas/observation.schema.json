@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trq-bec.local/schemas/observation.v1.json",
+  "title": "TRQ-BEC Observation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "value", "source", "observed_at", "expires_at", "quality_bps", "integrity_bps", "evidence_ref"],
+  "properties": {
+    "name": {"type": "string", "minLength": 1, "maxLength": 256},
+    "value": {"type": "string", "enum": ["true", "false"]},
+    "source": {"type": "string", "minLength": 1, "maxLength": 256},
+    "observed_at": {"type": "integer"},
+    "expires_at": {"type": "integer"},
+    "quality_bps": {"type": "integer", "minimum": 0, "maximum": 10000},
+    "integrity_bps": {"type": "integer", "minimum": 0, "maximum": 10000},
+    "evidence_ref": {"type": "string", "minLength": 1, "maxLength": 256}
+  }
+}
+

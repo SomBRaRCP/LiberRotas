@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "LiberRotas",
+    "slug": "app_liberRotas",
+    "version": "1.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "appliberrotas",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.sombrarcp.liberrotas",
+      "icon": "./assets/expo.icon"
+    },
+    "android": {
+      "package": "com.sombrarcp.liberrotas",
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5EDDB",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#2B5CC7",
+          "android": {
+            "image": "./assets/images/splash-icon.png",
+            "imageWidth": 76
+          }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permita que o LiberRotas use a câmera para ler QR Codes.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Permita que o LiberRotas use sua localização somente para posicionar a feira ao vivo no mapa."
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita que o LiberRotas acesse suas imagens para criar publicações e enviar mensagens.",
+          "cameraPermission": "Permita que o LiberRotas use a câmera para tirar fotos.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

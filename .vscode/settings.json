@@ -1,0 +1,51 @@
+{
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "python.defaultInterpreterPath": "${workspaceFolder}\\backend_trq_bec\\.venv\\Scripts\\python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}\\backend_trq_bec\\src"
+  ],
+  "python.analysis.exclude": [
+    "**/.venv/**",
+    "archive/**",
+    "backend_trq_bec/database/postgres/**",
+    "backend_trq_bec/backups/**"
+  ],
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.cwd": "${workspaceFolder}\\backend_trq_bec",
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+  "eslint.workingDirectories": [
+    {
+      "directory": "./mobile_app",
+      "changeProcessCWD": true
+    }
+  ],
+  "typescript.tsdk": "mobile_app/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "search.exclude": {
+    "**/.venv/**": true,
+    "**/node_modules/**": true,
+    "**/.expo/**": true,
+    "**/dist/**": true,
+    "**/coverage/**": true,
+    "**/__pycache__/**": true,
+    "**/.pytest_cache/**": true,
+    "archive/**": true,
+    "backend_trq_bec/database/postgres/**": true,
+    "backend_trq_bec/backups/**": true
+  },
+  "files.watcherExclude": {
+    "**/.venv/**": true,
+    "**/node_modules/**": true,
+    "**/.expo/**": true,
+    "**/dist/**": true,
+    "**/coverage/**": true,
+    "**/__pycache__/**": true,
+    "**/.pytest_cache/**": true,
+    "archive/**": true,
+    "backend_trq_bec/database/postgres/**": true,
+    "backend_trq_bec/backups/**": true
+  }
+}

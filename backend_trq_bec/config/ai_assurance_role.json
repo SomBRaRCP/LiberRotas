@@ -1,0 +1,22 @@
+{
+  "role_id": "ai_assurance_layer",
+  "symbolic_archetype": "system_tree_gardener",
+  "visibility": "internal_only",
+  "allowed": [
+    "observe",
+    "assess_health",
+    "detect_anomaly",
+    "correlate_evidence",
+    "explain_finding",
+    "recommend"
+  ],
+  "denied": [
+    "access_key_material",
+    "invoke_crypto",
+    "change_crypto_ok",
+    "change_policy",
+    "execute_remediation",
+    "rewrite_evidence"
+  ]
+}
+

@@ -1,0 +1,75 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "LiberRotas: backend - testes",
+      "type": "process",
+      "command": "${workspaceFolder}\\backend_trq_bec\\.venv\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}\\backend_trq_bec"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "LiberRotas: mobile - testes",
+      "type": "process",
+      "command": "npm.cmd",
+      "args": [
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}\\mobile_app"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "LiberRotas: mobile - lint",
+      "type": "process",
+      "command": "npm.cmd",
+      "args": [
+        "run",
+        "lint"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}\\mobile_app"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "LiberRotas: mobile - TypeScript",
+      "type": "process",
+      "command": "${workspaceFolder}\\mobile_app\\node_modules\\.bin\\tsc.cmd",
+      "args": [
+        "--noEmit"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}\\mobile_app"
+      },
+      "group": "test",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "LiberRotas: validacao completa",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "LiberRotas: backend - testes",
+        "LiberRotas: mobile - TypeScript",
+        "LiberRotas: mobile - lint",
+        "LiberRotas: mobile - testes"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: trq_bec
+      POSTGRES_USER: trq_bec
+      POSTGRES_PASSWORD: ${TRQ_BEC_POSTGRES_PASSWORD:?set TRQ_BEC_POSTGRES_PASSWORD}
+    volumes:
+      - type: bind
+        source: ./database/postgres
+        target: /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trq_bec -d trq_bec"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+    volumes:
+      - trq_bec_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  secrets-init:
+    image: alpine:3.22
+    volumes:
+      - ./secrets:/source:ro
+      - trq_bec_secrets:/target
+    command:
+      - sh
+      - -ec
+      - |
+        umask 077
+        for name in issuer-ed25519.pem checkpoint-ed25519.pem audit-hmac.key; do
+          test -f "/source/$${name}"
+          cp "/source/$${name}" "/target/$${name}"
+          chown 10001:10001 "/target/$${name}"
+          chmod 600 "/target/$${name}"
+        done
+        if [ -f /source/firebase-service-account.json ]; then
+          cp /source/firebase-service-account.json /target/firebase-service-account.json
+          chown 10001:10001 /target/firebase-service-account.json
+          chmod 600 /target/firebase-service-account.json
+        else
+          rm -f /target/firebase-service-account.json
+        fi
+        if [ -f /source/gcs-service-account.json ]; then
+          cp /source/gcs-service-account.json /target/gcs-service-account.json
+          chown 10001:10001 /target/gcs-service-account.json
+          chmod 600 /target/gcs-service-account.json
+        else
+          rm -f /target/gcs-service-account.json
+        fi
+        if [ -f /source/smtp-password ]; then
+          cp /source/smtp-password /target/smtp-password
+          chown 10001:10001 /target/smtp-password
+          chmod 600 /target/smtp-password
+        else
+          rm -f /target/smtp-password
+        fi
+    restart: "no"
+
+  api:
+    build: .
+    env_file: .env.backend
+    environment:
+      TRQ_BEC_DATABASE_URL: postgresql://trq_bec:${TRQ_BEC_POSTGRES_PASSWORD}@postgres:5432/trq_bec
+      TRQ_BEC_REDIS_URL: redis://redis:6379/0
+      TRQ_BEC_MIGRATIONS_DIR: /app/migrations
+      TRQ_BEC_CORS_ORIGINS: https://app.liberrotas.com.br,http://127.0.0.1:8081,http://localhost:8081,http://127.0.0.1:8082,http://localhost:8082
+    volumes:
+      - trq_bec_secrets:/run/secrets:ro
+    command: ["sh", "-c", "trq-bec-migrate && exec trq-bec-api"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      secrets-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:8787:8787"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health/', timeout=2).read()
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+    restart: unless-stopped
+
+  web:
+    image: liberrotas-web:local
+    build:
+      context: ../mobile_app
+      dockerfile: Dockerfile.web
+      args:
+        EXPO_PUBLIC_TRQ_BEC_API_URL: https://api.liberrotas.com.br
+        EXPO_PUBLIC_FIREBASE_API_KEY: ${EXPO_PUBLIC_FIREBASE_API_KEY:-}
+        EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
+        EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${EXPO_PUBLIC_FIREBASE_PROJECT_ID:-}
+        EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET:-}
+        EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:-}
+        EXPO_PUBLIC_FIREBASE_APP_ID: ${EXPO_PUBLIC_FIREBASE_APP_ID:-}
+    ports:
+      - "127.0.0.1:8081:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  trq_bec_redis:
+  trq_bec_secrets:

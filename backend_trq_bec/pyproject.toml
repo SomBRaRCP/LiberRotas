@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trq-bec"
+version = "0.6.0a1"
+description = "TRQ-BEC backend reference implementation for app_LiberRotas"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "cryptography>=46,<48",
+  "fastapi>=0.116,<1",
+  "firebase-admin>=7,<8",
+  "google-cloud-storage>=3.13,<4",
+  "Pillow>=12.3,<13",
+  "psycopg[binary,pool]>=3.2,<4",
+  "pydantic-settings>=2.10,<3",
+  "redis>=6,<9",
+  "uvicorn[standard]>=0.35,<1",
+]
+authors = [{name = "Reginaldo Camargo Pires"}]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Topic :: Security :: Cryptography",
+]
+
+[project.optional-dependencies]
+test = [
+  "fakeredis[lua]>=2.30,<3",
+  "httpx2>=2,<3",
+  "pytest>=9,<10",
+]
+
+[project.scripts]
+trq-bec = "trq_bec.cli:main"
+trq-bec-api = "trq_bec.server.run:main"
+trq-bec-keygen = "trq_bec.server.keygen:main"
+trq-bec-migrate = "trq_bec.server.migrate:main"
+trq-bec-set-role = "trq_bec.server.set_role:main"
+trq-bec-openapi = "trq_bec.server.export_openapi:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+trq_bec = ["py.typed"]

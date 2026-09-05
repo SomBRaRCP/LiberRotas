@@ -1,0 +1,303 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isEntrepreneur() {
+      return signedIn() && request.auth.token.role == 'entrepreneur';
+    }
+
+    function hasAuthorizedPublicRole() {
+      return signedIn()
+        && request.auth.token.role in ['entrepreneur', 'visitor'];
+    }
+
+    function isValidPublicProfile(userId) {
+      return request.resource.data.keys().hasOnly([
+          'userId',
+          'displayName',
+          'role',
+          'city',
+          'address',
+          'category',
+          'interests',
+          'avatarUri',
+          'createdAtMs',
+          'updatedAtMs',
+          'privacy'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId',
+          'displayName',
+          'role',
+          'city',
+          'address',
+          'category',
+          'interests',
+          'avatarUri',
+          'createdAtMs',
+          'updatedAtMs',
+          'privacy'
+        ])
+        && request.resource.data.userId == userId
+        && request.resource.data.userId == request.auth.uid
+        && hasAuthorizedPublicRole()
+        && request.resource.data.role == request.auth.token.role
+        && request.resource.data.privacy is map
+        && request.resource.data.privacy.keys().hasOnly([
+          'lgpdNoticeVersion',
+          'syncedAtMs',
+          'minimizedFields'
+        ]);
+    }
+
+    function isValidPrivateProfile(userId) {
+      return request.resource.data.keys().hasOnly([
+          'userId',
+          'pixKey',
+          'updatedAtMs'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId',
+          'pixKey',
+          'updatedAtMs'
+        ])
+        && request.resource.data.userId == userId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.pixKey is string
+        && request.resource.data.pixKey.size() >= 3
+        && request.resource.data.pixKey.size() <= 140
+        && request.resource.data.updatedAtMs is int
+        && request.resource.data.updatedAtMs > 0;
+    }
+
+    function isValidCuratedPlace() {
+      return request.resource.data.keys().hasOnly([
+          'ownerId',
+          'createdBy',
+          'ownerName',
+          'name',
+          'address',
+          'category',
+          'latitude',
+          'longitude',
+          'createdAtMs',
+          'status'
+        ])
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.ownerName is string
+        && request.resource.data.ownerName.size() >= 2
+        && request.resource.data.ownerName.size() <= 100
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.address is string
+        && request.resource.data.address.size() >= 3
+        && request.resource.data.address.size() <= 240
+        && request.resource.data.category in [
+          'pontos_turisticos',
+          'parques',
+          'feiras_livres',
+          'artesanato',
+          'bordados',
+          'gastronomia',
+          'eventos',
+          'comercio_local'
+        ]
+        && request.resource.data.latitude is number
+        && request.resource.data.latitude >= -90
+        && request.resource.data.latitude <= 90
+        && request.resource.data.longitude is number
+        && request.resource.data.longitude >= -180
+        && request.resource.data.longitude <= 180
+        && request.resource.data.createdAtMs is int
+        && request.resource.data.createdAtMs > 0
+        && request.resource.data.status == 'approved';
+    }
+
+    function isValidLiveFair() {
+      return request.resource.data.keys().hasOnly([
+          'ownerId',
+          'createdBy',
+          'ownerName',
+          'name',
+          'address',
+          'latitude',
+          'longitude',
+          'startsAtMs',
+          'endsAtMs',
+          'createdAtMs',
+          'updatedAtMs',
+          'status',
+          'endedAtMs',
+          'endReason'
+        ])
+        && request.resource.data.keys().hasAll([
+          'ownerId',
+          'createdBy',
+          'ownerName',
+          'name',
+          'address',
+          'latitude',
+          'longitude',
+          'startsAtMs',
+          'endsAtMs',
+          'createdAtMs',
+          'updatedAtMs',
+          'status'
+        ])
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.ownerName is string
+        && request.resource.data.ownerName.size() >= 2
+        && request.resource.data.ownerName.size() <= 100
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.address is string
+        && request.resource.data.address.size() >= 10
+        && request.resource.data.address.size() <= 240
+        && request.resource.data.latitude is number
+        && request.resource.data.latitude >= -90
+        && request.resource.data.latitude <= 90
+        && request.resource.data.longitude is number
+        && request.resource.data.longitude >= -180
+        && request.resource.data.longitude <= 180
+        && request.resource.data.startsAtMs is int
+        && request.resource.data.startsAtMs > 0
+        && request.resource.data.endsAtMs is int
+        && request.resource.data.endsAtMs > request.resource.data.startsAtMs
+        && request.resource.data.endsAtMs - request.resource.data.startsAtMs <= 86400000
+        && request.resource.data.createdAtMs is int
+        && request.resource.data.createdAtMs > 0
+        && request.resource.data.updatedAtMs is int
+        && request.resource.data.updatedAtMs >= request.resource.data.createdAtMs
+        && request.resource.data.status in ['scheduled', 'live', 'ended']
+        && (
+          (
+            request.resource.data.status in ['scheduled', 'live']
+            && !request.resource.data.keys().hasAny(['endedAtMs', 'endReason'])
+          )
+          || (
+            request.resource.data.status == 'ended'
+            && request.resource.data.endedAtMs is int
+            && request.resource.data.endedAtMs > 0
+            && request.resource.data.endReason == 'manual'
+          )
+        );
+    }
+
+    function isValidNetworkInteraction() {
+      return request.resource.data.keys().hasOnly([
+          'userId',
+          'targetId',
+          'kind',
+          'createdAtMs',
+          'privacy'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId',
+          'targetId',
+          'kind',
+          'createdAtMs',
+          'privacy'
+        ])
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.targetId is string
+        && request.resource.data.targetId.size() >= 1
+        && request.resource.data.targetId.size() <= 240
+        && request.resource.data.kind in ['post_like', 'route_save', 'favorite']
+        && request.resource.data.createdAtMs is int
+        && request.resource.data.createdAtMs > 0
+        && request.resource.data.privacy is map
+        && request.resource.data.privacy.keys().hasOnly([
+          'lgpdNoticeVersion',
+          'syncedAtMs',
+          'minimizedFields'
+        ])
+        && request.resource.data.privacy.keys().hasAll([
+          'lgpdNoticeVersion',
+          'syncedAtMs',
+          'minimizedFields'
+        ])
+        && request.resource.data.privacy.lgpdNoticeVersion is string
+        && request.resource.data.privacy.syncedAtMs is int
+        && request.resource.data.privacy.syncedAtMs > 0
+        && request.resource.data.privacy.minimizedFields is list;
+    }
+
+    match /public_profiles/{userId} {
+      allow read: if signedIn();
+      // O backend autenticado é o único escritor. O Admin SDK ignora estas
+      // regras; clientes antigos não podem contornar a API autoritativa.
+      allow create, update, delete: if false;
+    }
+
+    match /private_profiles/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create, update: if isOwner(userId)
+        && isEntrepreneur()
+        && isValidPrivateProfile(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /posts/{postId} {
+      allow read: if signedIn();
+      // A API define autor, função e horário depois de validar token, status e
+      // permissão no PostgreSQL. Nenhum cliente grava função no Feed.
+      allow create, update, delete: if false;
+    }
+
+    match /network_interactions/{interactionId} {
+      allow read: if signedIn()
+        && resource.data.userId == request.auth.uid;
+      allow create: if signedIn()
+        && isValidNetworkInteraction();
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && isValidNetworkInteraction();
+      allow delete: if signedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /coupon_validations/{validationId} {
+      allow read: if signedIn()
+        && resource.data.userId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /curated_places/{placeId} {
+      allow read: if signedIn()
+        && resource.data.status == 'approved';
+      // Escritas passam exclusivamente pelo backend, que usa Firebase Admin
+      // após consultar status e locations.publish no PostgreSQL.
+      allow create, update, delete: if false;
+    }
+
+    match /live_fairs/{fairId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
+    match /admin_users/{userId} {
+      // Coleção legada: não participa mais da autorização administrativa.
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

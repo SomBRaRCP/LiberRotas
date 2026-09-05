@@ -1,0 +1,28 @@
+[
+  {
+    "origin": [
+      "https://liberrotas.com.br",
+      "https://www.liberrotas.com.br",
+      "https://app.liberrotas.com.br",
+      "http://127.0.0.1:8081",
+      "http://localhost:8081",
+      "http://127.0.0.1:8082",
+      "http://localhost:8082"
+    ],
+    "method": [
+      "GET",
+      "HEAD",
+      "PUT"
+    ],
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "ETag",
+      "x-goog-generation",
+      "x-goog-hash",
+      "x-goog-metageneration",
+      "x-goog-meta-media-id"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

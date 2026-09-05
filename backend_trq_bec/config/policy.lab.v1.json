@@ -1,0 +1,9 @@
+{
+  "version": "liberrotas-lab-policy-1",
+  "profile": "LAB",
+  "q_min_bps": 7000,
+  "low_risk_bps": 3500,
+  "high_risk_bps": 7000,
+  "note": "Versioned laboratory policy. Production policy must be signed and independently governed."
+}
+

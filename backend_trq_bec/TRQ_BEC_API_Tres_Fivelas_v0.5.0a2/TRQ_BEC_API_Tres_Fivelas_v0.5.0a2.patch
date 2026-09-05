@@ -1,0 +1,3019 @@
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/README.md trq_buckles/README.md
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/README.md	2026-07-12 00:53:55.087006170 +0000
++++ trq_buckles/README.md	2026-07-12 01:25:01.724398383 +0000
+@@ -2,7 +2,7 @@
+ 
+ Implementação de referência modular da **TRQ-BEC — Boundary Entropic Cryptography / Criptografia Entrópica de Borda TRQ**, preparada para integração experimental com o `app_LiberRotas`.
+ 
+-> Status: backend experimental `0.5.0-alpha.1`. Não é certificação FIPS 140-3, homologação Pix, protocolo pronto para produção nem implementação pós-quântica validada.
++> Status: backend experimental `0.5.0-alpha.2`. Não é certificação FIPS 140-3, homologação Pix, protocolo pronto para produção nem implementação pós-quântica validada.
+ 
+ A segurança nasce de primitivas e verificações determinísticas. Contexto e IA permanecem auxiliares, calibráveis e auditáveis. A regra estrutural é absoluta: `CryptoOK = 0` implica `DENY`.
+ 
+@@ -116,26 +116,34 @@
+ 
+ ### Documentação autoritativa da API
+ 
+-Com o backend em execução fora de produção:
++Com o backend em execução fora de produção, os contratos ficam separados:
+ 
+ ```text
+-Swagger UI  http://127.0.0.1:8787/docs
+-ReDoc       http://127.0.0.1:8787/redoc
+-OpenAPI     http://127.0.0.1:8787/openapi.json
++Público
++  Swagger UI  http://127.0.0.1:8787/docs
++  ReDoc       http://127.0.0.1:8787/redoc
++  OpenAPI     http://127.0.0.1:8787/openapi.json
++
++Administrativo
++  Swagger UI  http://127.0.0.1:8787/internal/docs
++  ReDoc       http://127.0.0.1:8787/internal/redoc
++  OpenAPI     http://127.0.0.1:8787/internal/openapi.json
+ ```
+ 
+-As rotas são agrupadas por domínio, usam esquema HTTP Bearer para Firebase ID token, exibem exemplos reais do LiberRotas e documentam respostas de erro e estados de indisponibilidade. O OpenAPI é desativado junto com as interfaces de documentação em produção.
++O contrato público não contém rotas `/internal/`. O contrato administrativo contém somente as operações internas e exige `admin=true` para execução. Os exemplos de erro são específicos por rota e correspondem aos códigos emitidos pelo serviço. As descrições dos schemas são mantidas em português. Todas as interfaces de documentação são desativadas em produção.
+ 
+ Referências:
+ 
+-- [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md): fluxo, autenticação, endpoints e contrato de erro;
+-- [`docs/openapi-liberrotas-v0.5.0a1.json`](docs/openapi-liberrotas-v0.5.0a1.json): contrato OpenAPI 3.1 versionado;
++- [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md): fluxo, autenticação, separação de contratos e erros;
++- [`docs/openapi-liberrotas-public-v0.5.0a2.json`](docs/openapi-liberrotas-public-v0.5.0a2.json): contrato público OpenAPI 3.1;
++- [`docs/openapi-liberrotas-internal-v0.5.0a2.json`](docs/openapi-liberrotas-internal-v0.5.0a2.json): contrato administrativo OpenAPI 3.1;
+ - [`docs/BACKEND_DEPLOYMENT.md`](docs/BACKEND_DEPLOYMENT.md): Docker Compose, Firebase custom claims, segredos, migrações e implantação.
+ 
+-Para regenerar o contrato:
++Para regenerar os contratos:
+ 
+ ```powershell
+-trq-bec-openapi --output .\docs\openapi-liberrotas-v0.5.0a1.json
++trq-bec-openapi --scope public --output .\docs\openapi-liberrotas-public-v0.5.0a2.json
++trq-bec-openapi --scope internal --output .\docs\openapi-liberrotas-internal-v0.5.0a2.json
+ ```
+ 
+ ## Limites conhecidos
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/docs/API_REFERENCE.md trq_buckles/docs/API_REFERENCE.md
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/docs/API_REFERENCE.md	2026-07-12 00:53:42.650893592 +0000
++++ trq_buckles/docs/API_REFERENCE.md	2026-07-12 01:24:41.800528988 +0000
+@@ -1,6 +1,6 @@
+ # TRQ-BEC LiberRotas API — Referência de Integração
+ 
+-**Versão:** `0.5.0-alpha.1`  
++**Versão:** `0.5.0-alpha.2`  
+ **Contrato:** OpenAPI 3.1  
+ **Estado:** laboratório controlado; ML-KEM-768 e ML-DSA-65 bloqueados até provider auditado.
+ 
+@@ -13,19 +13,38 @@
+ 3. iniciar o resgate com desafio de uso único;
+ 4. validar prova de posse, replay, contexto e política;
+ 5. registrar evidências em ledger append-only;
+-6. produzir checkpoints assinados do ledger.
++6. produzir checkpoints assinados do ledger em contrato administrativo separado.
+ 
+ A regra estrutural é **fail-closed**: falha criptográfica, ausência de evidência obrigatória ou indisponibilidade de dependência crítica nunca produz `ALLOW`.
+ 
+-## Interfaces de documentação
++## Contratos separados
++
++### Contrato público
+ 
+ | Interface | Caminho | Finalidade |
+ |---|---|---|
+-| Swagger UI | `/docs` | Teste interativo e inspeção dos contratos |
+-| ReDoc | `/redoc` | Leitura técnica contínua e apresentação |
+-| OpenAPI JSON | `/openapi.json` | Geração de clientes, validação e auditoria |
++| Swagger UI | `/docs` | Teste interativo das rotas públicas |
++| ReDoc | `/redoc` | Leitura técnica e apresentação pública |
++| OpenAPI JSON | `/openapi.json` | Geração de clientes e validação do app |
++
++O contrato público contém apenas:
++
++- saúde e prontidão;
++- cadastro de dispositivos;
++- emissão de cupons;
++- início e autorização de resgate.
++
++### Contrato administrativo
+ 
+-Essas interfaces são habilitadas somente fora de produção quando `TRQ_BEC_DOCS_ENABLED=true`.
++| Interface | Caminho | Finalidade |
++|---|---|---|
++| Swagger administrativo | `/internal/docs` | Teste interativo das rotas internas |
++| ReDoc administrativo | `/internal/redoc` | Leitura do contrato operacional interno |
++| OpenAPI administrativo | `/internal/openapi.json` | Auditoria e automação administrativa |
++
++O contrato administrativo contém somente rotas iniciadas por `/internal/`. Ele não aparece na documentação pública.
++
++Todas as interfaces de documentação são habilitadas apenas fora de produção quando `TRQ_BEC_DOCS_ENABLED=true`.
+ 
+ ## Autenticação
+ 
+@@ -37,7 +56,7 @@
+ 
+ No Swagger UI, clique em **Authorize** e cole somente o token. A interface acrescenta o prefixo `Bearer`.
+ 
+-Principais claims:
++Claims principais:
+ 
+ | Claim | Uso |
+ |---|---|
+@@ -69,14 +88,14 @@
+ Decisão + evento no ledger
+ ```
+ 
+-## Endpoints
++## Endpoints públicos
+ 
+ ### Saúde e prontidão
+ 
+ | Método | Caminho | Autenticação | Descrição |
+ |---|---|---|---|
+ | `GET` | `/health/` | não | PostgreSQL, Redis e prontidão PQC |
+-| `GET` | `/health/crypto` | não | provider, aprovação, self-test e algoritmos |
++| `GET` | `/health/crypto` | não | provider, aprovação, autoteste e algoritmos |
+ 
+ ### Dispositivos
+ 
+@@ -97,7 +116,7 @@
+ | `POST` | `/v1/trq-bec/coupons/redeem/begin` | sim | cria sessão e desafio de uso único |
+ | `POST` | `/v1/trq-bec/coupons/redeem/authorize` | sim | valida prova de posse e aplica política |
+ 
+-### Operações internas
++## Endpoint administrativo
+ 
+ | Método | Caminho | Autenticação | Descrição |
+ |---|---|---|---|
+@@ -140,16 +159,18 @@
+ }
+ ```
+ 
+-| HTTP | Significado operacional |
+-|---|---|
+-| `400` | QR, vínculo ou contrato semanticamente inválido |
+-| `401` | token Firebase ausente ou inválido |
+-| `403` | claim, dispositivo ou vínculo sem autorização |
+-| `404` | cupom, token ou operação não encontrado |
+-| `409` | conflito, replay ou recurso já utilizado |
+-| `410` | token expirado |
+-| `422` | corpo fora do schema estrito |
+-| `503` | Redis/provider/dependência crítica indisponível |
++Os exemplos da documentação são específicos para cada rota e correspondem aos códigos realmente emitidos pelo serviço.
++
++| HTTP | Exemplos de código | Significado operacional |
++|---|---|---|
++| `400` | `QR_BINDING_MISMATCH`, `TOKEN_CRYPTO_INVALID` | QR ou envelope semanticamente inválido |
++| `401` | `AUTH_BEARER_REQUIRED`, `AUTH_TOKEN_INVALID` | autenticação ausente ou inválida |
++| `403` | `ENTREPRENEUR_CLAIM_REQUIRED`, `DEVICE_NOT_ENROLLED`, `ADMIN_CLAIM_REQUIRED` | claim, dispositivo ou vínculo insuficiente |
++| `404` | `COUPON_NOT_ACTIVE_OR_NOT_OWNED`, `TOKEN_REFERENCE_UNKNOWN`, `OPERATION_UNKNOWN` | recurso não encontrado |
++| `409` | `DEVICE_KEY_BINDING_CONFLICT`, `TOKEN_NOT_REDEEMABLE`, `LEDGER_EMPTY` | conflito ou estado incompatível |
++| `410` | `TOKEN_EXPIRED` | token expirado |
++| `422` | validação Pydantic | corpo fora do schema estrito |
++| `503` | `PQC_PROVIDER_NOT_READY`, `REPLAY_STORE_UNAVAILABLE` | dependência crítica indisponível |
+ 
+ ## Decisão de autorização
+ 
+@@ -163,12 +184,18 @@
+ 
+ `crypto_ok=false` jamais deve ser interpretado como autorização.
+ 
+-## Exportar o contrato
++## Exportar os contratos
++
++Contrato público:
++
++```powershell
++trq-bec-openapi --scope public --output .\docs\openapi-liberrotas-public-v0.5.0a2.json
++```
+ 
+-Após instalar o pacote em modo editável:
++Contrato administrativo:
+ 
+ ```powershell
+-trq-bec-openapi --output .\docs\openapi-liberrotas-v0.5.0a1.json
++trq-bec-openapi --scope internal --output .\docs\openapi-liberrotas-internal-v0.5.0a2.json
+ ```
+ 
+-O arquivo gerado pode ser versionado, comparado em revisão e usado para geração de clientes.
++Os arquivos gerados podem ser versionados, comparados em revisão e usados para geração de clientes ou auditoria.
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/docs/BACKEND_DEPLOYMENT.md trq_buckles/docs/BACKEND_DEPLOYMENT.md
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/docs/BACKEND_DEPLOYMENT.md	2026-07-11 01:14:54.000000000 +0000
++++ trq_buckles/docs/BACKEND_DEPLOYMENT.md	2026-07-12 01:26:25.581916029 +0000
+@@ -1,6 +1,6 @@
+ # Backend TRQ-BEC para app_LiberRotas
+ 
+-**Versão:** 0.5.0-alpha.1  
++**Versão:** 0.5.0-alpha.2  
+ **Estado:** implementação executável de laboratório; produção permanece bloqueada
+ 
+ ## Componentes
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/docs/openapi-liberrotas-internal-v0.5.0a2.json trq_buckles/docs/openapi-liberrotas-internal-v0.5.0a2.json
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/docs/openapi-liberrotas-internal-v0.5.0a2.json	1970-01-01 00:00:00.000000000 +0000
++++ trq_buckles/docs/openapi-liberrotas-internal-v0.5.0a2.json	2026-07-12 01:26:07.741231628 +0000
+@@ -0,0 +1,244 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "TRQ-BEC LiberRotas API — Contrato administrativo",
++    "summary": "Operações administrativas de integridade do ledger.",
++    "description": "## Contrato administrativo da TRQ-BEC\n\nEste contrato é destinado exclusivamente a operadores autorizados da infraestrutura\nLiberRotas. As rotas administrativas exigem **Firebase ID token** com a custom claim\n`admin=true`.\n\n### Separação de contratos\n\nAs operações internas não aparecem no OpenAPI público, no Swagger público nem na\nReDoc pública. Esta documentação administrativa também permanece desativada em\nambiente de produção.\n\n### Integridade do ledger\n\nO checkpoint cobre a cadeia append-only atual, vincula a versão de política ao hash\nraiz e produz uma assinatura verificável com a chave administrativa de checkpoint.",
++    "contact": {
++      "name": "Equipe TRQ-BEC / LiberRotas"
++    },
++    "version": "0.5.0a2"
++  },
++  "paths": {
++    "/internal/v1/ledger/checkpoint": {
++      "post": {
++        "tags": [
++          "Operações internas"
++        ],
++        "summary": "Criar um checkpoint assinado do ledger",
++        "description": "Operação administrativa que cobre a cadeia append-only atual, vincula a versão de política e assina o hash raiz com a chave de checkpoint. Exige custom claim `admin=true`.",
++        "operationId": "createLedgerCheckpoint",
++        "responses": {
++          "200": {
++            "description": "Checkpoint persistido e assinado.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/LedgerCheckpointResponse"
++                }
++              }
++            }
++          },
++          "401": {
++            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "bearerAusente": {
++                    "summary": "Cabeçalho Bearer ausente",
++                    "value": {
++                      "code": "AUTH_BEARER_REQUIRED",
++                      "message": "AUTH_BEARER_REQUIRED"
++                    }
++                  },
++                  "bearerInvalido": {
++                    "summary": "Cabeçalho Bearer inválido",
++                    "value": {
++                      "code": "AUTH_BEARER_INVALID",
++                      "message": "AUTH_BEARER_INVALID"
++                    }
++                  },
++                  "tokenInvalido": {
++                    "summary": "Firebase ID token inválido",
++                    "value": {
++                      "code": "AUTH_TOKEN_INVALID",
++                      "message": "AUTH_TOKEN_INVALID"
++                    }
++                  },
++                  "sujeitoInvalido": {
++                    "summary": "Sujeito do token inválido",
++                    "value": {
++                      "code": "AUTH_SUBJECT_INVALID",
++                      "message": "AUTH_SUBJECT_INVALID"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "403": {
++            "description": "Identidade autenticada sem a custom claim administrativa obrigatória.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "claimAdmin": {
++                    "summary": "Custom claim admin=true ausente",
++                    "value": {
++                      "code": "ADMIN_CLAIM_REQUIRED",
++                      "message": "ADMIN_CLAIM_REQUIRED"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "409": {
++            "description": "Ledger vazio ou estado incompatível com a criação de checkpoint.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "ledgerVazio": {
++                    "summary": "Não existem eventos para cobrir",
++                    "value": {
++                      "code": "LEDGER_EMPTY",
++                      "message": "LEDGER_EMPTY"
++                    }
++                  }
++                }
++              }
++            }
++          }
++        },
++        "security": [
++          {
++            "FirebaseIDToken": []
++          }
++        ]
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "ApiErrorResponse": {
++        "properties": {
++          "code": {
++            "type": "string",
++            "title": "Code",
++            "description": "Código de motivo legível por máquina.",
++            "examples": [
++              "AUTH_TOKEN_INVALID"
++            ]
++          },
++          "message": {
++            "type": "string",
++            "title": "Message",
++            "description": "Mensagem de erro legível por pessoa ou operador.",
++            "examples": [
++              "AUTH_TOKEN_INVALID"
++            ]
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "code",
++          "message"
++        ],
++        "title": "ApiErrorResponse",
++        "description": "Envelope estável de erro retornado nas fronteiras de autenticação e serviço.",
++        "examples": [
++          {
++            "code": "AUTH_TOKEN_INVALID",
++            "message": "AUTH_TOKEN_INVALID"
++          }
++        ]
++      },
++      "LedgerCheckpointResponse": {
++        "properties": {
++          "first_seq": {
++            "type": "integer",
++            "title": "First Seq",
++            "description": "Primeira sequência do ledger incluída no checkpoint.",
++            "examples": [
++              1
++            ]
++          },
++          "last_seq": {
++            "type": "integer",
++            "title": "Last Seq",
++            "description": "Última sequência do ledger incluída no checkpoint.",
++            "examples": [
++              128
++            ]
++          },
++          "root_hash": {
++            "type": "string",
++            "title": "Root Hash",
++            "description": "Hash do último evento da cadeia append-only coberta.",
++            "examples": [
++              "6fb9c64085cbd1e2234916f2ab6ad37c3de9a9d2c731e6052ee742c67358ee2a"
++            ]
++          },
++          "policy_version": {
++            "type": "string",
++            "title": "Policy Version",
++            "description": "Versão de política vinculada ao checkpoint assinado.",
++            "examples": [
++              "liberrotas-policy-1"
++            ]
++          },
++          "checkpoint_id": {
++            "type": "string",
++            "title": "Checkpoint Id",
++            "description": "UUID do checkpoint.",
++            "examples": [
++              "574cfa87-0c9b-4f0c-9ee0-719ee5c06f80"
++            ]
++          },
++          "signature_b64u": {
++            "type": "string",
++            "title": "Signature B64U",
++            "description": "Assinatura do checkpoint codificada em Base64URL sem preenchimento.",
++            "examples": [
++              "K7vQnUi9x5xJjK0KruPz3XFGVyw4Hn8lF0GZwp5nVxFA3x7TQ9kZgD0tUnqLUc7G_BFQxw3V7v7aDzc9t5LjCg"
++            ]
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "first_seq",
++          "last_seq",
++          "root_hash",
++          "policy_version",
++          "checkpoint_id",
++          "signature_b64u"
++        ],
++        "title": "LedgerCheckpointResponse",
++        "examples": [
++          {
++            "checkpoint_id": "574cfa87-0c9b-4f0c-9ee0-719ee5c06f80",
++            "first_seq": 1,
++            "last_seq": 128,
++            "policy_version": "liberrotas-policy-1",
++            "root_hash": "6fb9c64085cbd1e2234916f2ab6ad37c3de9a9d2c731e6052ee742c67358ee2a",
++            "signature_b64u": "K7vQnUi9x5xJjK0KruPz3XFGVyw4Hn8lF0GZwp5nVxFA3x7TQ9kZgD0tUnqLUc7G_BFQxw3V7v7aDzc9t5LjCg"
++          }
++        ]
++      }
++    },
++    "securitySchemes": {
++      "FirebaseIDToken": {
++        "type": "http",
++        "description": "Firebase ID token emitido para o usuário autenticado do LiberRotas. Cole somente o valor do token; a Swagger UI acrescenta o prefixo `Bearer` automaticamente.",
++        "scheme": "bearer",
++        "bearerFormat": "Firebase ID token (JWT)"
++      }
++    }
++  },
++  "tags": [
++    {
++      "name": "Operações internas",
++      "description": "Rotas administrativas para integridade do ledger. Exigem custom claim `admin=true` e não integram o contrato público do aplicativo."
++    }
++  ]
++}
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/docs/openapi-liberrotas-public-v0.5.0a2.json trq_buckles/docs/openapi-liberrotas-public-v0.5.0a2.json
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/docs/openapi-liberrotas-public-v0.5.0a2.json	1970-01-01 00:00:00.000000000 +0000
++++ trq_buckles/docs/openapi-liberrotas-public-v0.5.0a2.json	2026-07-12 01:26:05.438219948 +0000
+@@ -0,0 +1,1426 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "TRQ-BEC LiberRotas API",
++    "summary": "Fronteira autoritativa de segurança para emissão e resgate de cupons.",
++    "description": "## Fronteira de segurança do LiberRotas\n\nA **TRQ-BEC LiberRotas API** é a camada autoritativa para cadastro de dispositivos,\nemissão de cupons, resgate com prova de posse e registro de evidências no ledger.\n\n### Autenticação\n\nAs operações protegidas exigem um **Firebase ID token** no esquema HTTP Bearer.\nNo botão **Authorize**, cole somente o token — a interface acrescenta `Bearer` automaticamente.\n\n### Regra criptográfica\n\nA decisão é *fail-closed*: se a verificação criptográfica não estiver íntegra,\na autorização não produz `ALLOW`. O estado do provider pode ser consultado em\n`GET /health/crypto`.\n\n### Estado desta versão\n\nA versão `0.5.0-alpha.2` mantém Ed25519 apenas como perfil de laboratório.\nML-KEM-768 e ML-DSA-65 permanecem bloqueados até a integração de um provider\nauditado e aprovado.",
++    "contact": {
++      "name": "Equipe TRQ-BEC / LiberRotas"
++    },
++    "version": "0.5.0a2"
++  },
++  "paths": {
++    "/health/": {
++      "get": {
++        "tags": [
++          "Saúde e prontidão"
++        ],
++        "summary": "Verificar a saúde da infraestrutura",
++        "description": "Confirma conectividade com PostgreSQL e Redis e informa se a camada criptográfica pós-quântica está pronta. Endpoint público para sondas operacionais.",
++        "operationId": "getInfrastructureHealth",
++        "responses": {
++          "200": {
++            "description": "Estado consolidado da infraestrutura.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/HealthResponse"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/health/crypto": {
++      "get": {
++        "tags": [
++          "Saúde e prontidão"
++        ],
++        "summary": "Verificar o provider criptográfico",
++        "description": "Expõe identidade, aprovação, autoteste e suporte algorítmico do provider. `ready=false` mantém os fluxos pós-quânticos bloqueados por construção.",
++        "operationId": "getCryptoProviderHealth",
++        "responses": {
++          "200": {
++            "description": "Estado detalhado do provider criptográfico.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/CryptoHealthResponse"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/v1/trq-bec/devices/enroll": {
++      "post": {
++        "tags": [
++          "Dispositivos"
++        ],
++        "summary": "Cadastrar uma chave de dispositivo",
++        "description": "Vincula a chave pública do dispositivo ao sujeito autenticado pelo Firebase. O cadastro é idempotente para a mesma identidade e falha com conflito quando há tentativa de reatribuição.",
++        "operationId": "enrollDevice",
++        "requestBody": {
++          "content": {
++            "application/json": {
++              "schema": {
++                "$ref": "#/components/schemas/EnrollDeviceRequest"
++              }
++            }
++          },
++          "required": true
++        },
++        "responses": {
++          "200": {
++            "description": "Dispositivo cadastrado ou já cadastrado para o mesmo sujeito.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/EnrollDeviceResponse"
++                }
++              }
++            }
++          },
++          "401": {
++            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "bearerAusente": {
++                    "summary": "Cabeçalho Bearer ausente",
++                    "value": {
++                      "code": "AUTH_BEARER_REQUIRED",
++                      "message": "AUTH_BEARER_REQUIRED"
++                    }
++                  },
++                  "bearerInvalido": {
++                    "summary": "Cabeçalho Bearer inválido",
++                    "value": {
++                      "code": "AUTH_BEARER_INVALID",
++                      "message": "AUTH_BEARER_INVALID"
++                    }
++                  },
++                  "tokenInvalido": {
++                    "summary": "Firebase ID token inválido",
++                    "value": {
++                      "code": "AUTH_TOKEN_INVALID",
++                      "message": "AUTH_TOKEN_INVALID"
++                    }
++                  },
++                  "sujeitoInvalido": {
++                    "summary": "Sujeito do token inválido",
++                    "value": {
++                      "code": "AUTH_SUBJECT_INVALID",
++                      "message": "AUTH_SUBJECT_INVALID"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "409": {
++            "description": "A chave do dispositivo ou a chave pública já está vinculada a outra identidade.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "identificadorJaVinculado": {
++                    "summary": "Identificador de chave já vinculado",
++                    "value": {
++                      "code": "DEVICE_KEY_BINDING_CONFLICT",
++                      "message": "DEVICE_KEY_BINDING_CONFLICT"
++                    }
++                  },
++                  "chavePublicaJaVinculada": {
++                    "summary": "Chave pública já vinculada",
++                    "value": {
++                      "code": "DEVICE_PUBLIC_KEY_ALREADY_BOUND",
++                      "message": "DEVICE_PUBLIC_KEY_ALREADY_BOUND"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "422": {
++            "description": "Validation Error",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/HTTPValidationError"
++                }
++              }
++            }
++          }
++        },
++        "security": [
++          {
++            "FirebaseIDToken": []
++          }
++        ]
++      }
++    },
++    "/v1/trq-bec/coupons/issue": {
++      "post": {
++        "tags": [
++          "Cupons"
++        ],
++        "summary": "Emitir um cupom protegido",
++        "description": "Emite o envelope e o payload compacto de QR para um cupom ativo pertencente ao empreendedor. Exige claim `role=entrepreneur`, vínculo entre `issuer_id` e o Firebase UID e dispositivo previamente cadastrado.",
++        "operationId": "issueCoupon",
++        "requestBody": {
++          "content": {
++            "application/json": {
++              "schema": {
++                "$ref": "#/components/schemas/IssueCouponRequest"
++              }
++            }
++          },
++          "required": true
++        },
++        "responses": {
++          "200": {
++            "description": "Payload compacto para QR e prazo de validade do envelope.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/IssueCouponResponse"
++                }
++              }
++            }
++          },
++          "401": {
++            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "bearerAusente": {
++                    "summary": "Cabeçalho Bearer ausente",
++                    "value": {
++                      "code": "AUTH_BEARER_REQUIRED",
++                      "message": "AUTH_BEARER_REQUIRED"
++                    }
++                  },
++                  "bearerInvalido": {
++                    "summary": "Cabeçalho Bearer inválido",
++                    "value": {
++                      "code": "AUTH_BEARER_INVALID",
++                      "message": "AUTH_BEARER_INVALID"
++                    }
++                  },
++                  "tokenInvalido": {
++                    "summary": "Firebase ID token inválido",
++                    "value": {
++                      "code": "AUTH_TOKEN_INVALID",
++                      "message": "AUTH_TOKEN_INVALID"
++                    }
++                  },
++                  "sujeitoInvalido": {
++                    "summary": "Sujeito do token inválido",
++                    "value": {
++                      "code": "AUTH_SUBJECT_INVALID",
++                      "message": "AUTH_SUBJECT_INVALID"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "403": {
++            "description": "Identidade autenticada, porém sem claim, vínculo de emissor ou dispositivo necessário.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "claimEmpreendedor": {
++                    "summary": "Claim de empreendedor ausente",
++                    "value": {
++                      "code": "ENTREPRENEUR_CLAIM_REQUIRED",
++                      "message": "ENTREPRENEUR_CLAIM_REQUIRED"
++                    }
++                  },
++                  "vinculoEmissor": {
++                    "summary": "Emissor não corresponde ao Firebase UID",
++                    "value": {
++                      "code": "ISSUER_BINDING_MISMATCH",
++                      "message": "ISSUER_BINDING_MISMATCH"
++                    }
++                  },
++                  "dispositivoNaoCadastrado": {
++                    "summary": "Dispositivo emissor não cadastrado",
++                    "value": {
++                      "code": "DEVICE_NOT_ENROLLED",
++                      "message": "DEVICE_NOT_ENROLLED"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "404": {
++            "description": "Cupom inexistente, inativo ou não pertencente ao emissor autenticado.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "cupomIndisponivel": {
++                    "summary": "Cupom não está ativo ou não pertence ao emissor",
++                    "value": {
++                      "code": "COUPON_NOT_ACTIVE_OR_NOT_OWNED",
++                      "message": "COUPON_NOT_ACTIVE_OR_NOT_OWNED"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "503": {
++            "description": "Provider pós-quântico indisponível ou adaptação do envelope ainda não aprovada. A emissão falha fechada.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "providerNaoPronto": {
++                    "summary": "Provider pós-quântico não está pronto",
++                    "value": {
++                      "code": "PQC_PROVIDER_NOT_READY",
++                      "message": "PQC_PROVIDER_NOT_READY"
++                    }
++                  },
++                  "adaptadorPendente": {
++                    "summary": "Adaptador de envelope aguarda aprovação",
++                    "value": {
++                      "code": "PQC_ENVELOPE_ADAPTER_PENDING_APPROVAL",
++                      "message": "PQC_ENVELOPE_ADAPTER_PENDING_APPROVAL"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "422": {
++            "description": "Validation Error",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/HTTPValidationError"
++                }
++              }
++            }
++          }
++        },
++        "security": [
++          {
++            "FirebaseIDToken": []
++          }
++        ]
++      }
++    },
++    "/v1/trq-bec/coupons/redeem/begin": {
++      "post": {
++        "tags": [
++          "Resgate"
++        ],
++        "summary": "Iniciar o resgate e emitir um desafio",
++        "description": "Valida o vínculo do QR, o estado do token e o dispositivo do visitante. Cria uma operação, uma sessão e um desafio de uso único, retornando a mensagem exata que deverá ser assinada no dispositivo.",
++        "operationId": "beginCouponRedemption",
++        "requestBody": {
++          "content": {
++            "application/json": {
++              "schema": {
++                "$ref": "#/components/schemas/BeginRedemptionRequest"
++              }
++            }
++          },
++          "required": true
++        },
++        "responses": {
++          "200": {
++            "description": "Operação pendente, desafio de frescor e mensagem para prova de posse.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/BeginRedemptionResponse"
++                }
++              }
++            }
++          },
++          "401": {
++            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "bearerAusente": {
++                    "summary": "Cabeçalho Bearer ausente",
++                    "value": {
++                      "code": "AUTH_BEARER_REQUIRED",
++                      "message": "AUTH_BEARER_REQUIRED"
++                    }
++                  },
++                  "bearerInvalido": {
++                    "summary": "Cabeçalho Bearer inválido",
++                    "value": {
++                      "code": "AUTH_BEARER_INVALID",
++                      "message": "AUTH_BEARER_INVALID"
++                    }
++                  },
++                  "tokenInvalido": {
++                    "summary": "Firebase ID token inválido",
++                    "value": {
++                      "code": "AUTH_TOKEN_INVALID",
++                      "message": "AUTH_TOKEN_INVALID"
++                    }
++                  },
++                  "sujeitoInvalido": {
++                    "summary": "Sujeito do token inválido",
++                    "value": {
++                      "code": "AUTH_SUBJECT_INVALID",
++                      "message": "AUTH_SUBJECT_INVALID"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "400": {
++            "description": "QR inválido, vínculo inconsistente ou envelope criptográfico rejeitado.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "vinculoQrInvalido": {
++                    "summary": "QR não corresponde ao token armazenado",
++                    "value": {
++                      "code": "QR_BINDING_MISMATCH",
++                      "message": "QR_BINDING_MISMATCH"
++                    }
++                  },
++                  "tokenCriptograficoInvalido": {
++                    "summary": "Envelope criptográfico inválido",
++                    "value": {
++                      "code": "TOKEN_CRYPTO_INVALID",
++                      "message": "TOKEN_CRYPTO_INVALID"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "403": {
++            "description": "O dispositivo do visitante não está cadastrado para a identidade autenticada.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "dispositivoNaoCadastrado": {
++                    "summary": "Dispositivo de resgate não cadastrado",
++                    "value": {
++                      "code": "DEVICE_NOT_ENROLLED",
++                      "message": "DEVICE_NOT_ENROLLED"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "404": {
++            "description": "Referência de token desconhecida.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "tokenDesconhecido": {
++                    "summary": "Referência do token não encontrada",
++                    "value": {
++                      "code": "TOKEN_REFERENCE_UNKNOWN",
++                      "message": "TOKEN_REFERENCE_UNKNOWN"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "409": {
++            "description": "Token já utilizado, retido ou em estado incompatível com novo resgate.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "tokenNaoResgatavel": {
++                    "summary": "Token não pode ser resgatado novamente",
++                    "value": {
++                      "code": "TOKEN_NOT_REDEEMABLE",
++                      "message": "TOKEN_NOT_REDEEMABLE"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "410": {
++            "description": "Token expirado.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "tokenExpirado": {
++                    "summary": "Prazo de validade do token encerrado",
++                    "value": {
++                      "code": "TOKEN_EXPIRED",
++                      "message": "TOKEN_EXPIRED"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "422": {
++            "description": "Validation Error",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/HTTPValidationError"
++                }
++              }
++            }
++          }
++        },
++        "security": [
++          {
++            "FirebaseIDToken": []
++          }
++        ]
++      }
++    },
++    "/v1/trq-bec/coupons/redeem/authorize": {
++      "post": {
++        "tags": [
++          "Resgate"
++        ],
++        "summary": "Autorizar o resgate mediante prova de posse",
++        "description": "Consome o desafio de uso único, valida a assinatura do dispositivo, reserva replay de forma distribuída, executa os gates criptográficos e aplica a política determinística. Repetições da mesma operação são idempotentes.",
++        "operationId": "authorizeCouponRedemption",
++        "requestBody": {
++          "content": {
++            "application/json": {
++              "schema": {
++                "$ref": "#/components/schemas/AuthorizeRedemptionRequest"
++              }
++            }
++          },
++          "required": true
++        },
++        "responses": {
++          "200": {
++            "description": "Decisão autoritativa e referência de evidência no ledger.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/AuthorizationResponse"
++                }
++              }
++            }
++          },
++          "401": {
++            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "bearerAusente": {
++                    "summary": "Cabeçalho Bearer ausente",
++                    "value": {
++                      "code": "AUTH_BEARER_REQUIRED",
++                      "message": "AUTH_BEARER_REQUIRED"
++                    }
++                  },
++                  "bearerInvalido": {
++                    "summary": "Cabeçalho Bearer inválido",
++                    "value": {
++                      "code": "AUTH_BEARER_INVALID",
++                      "message": "AUTH_BEARER_INVALID"
++                    }
++                  },
++                  "tokenInvalido": {
++                    "summary": "Firebase ID token inválido",
++                    "value": {
++                      "code": "AUTH_TOKEN_INVALID",
++                      "message": "AUTH_TOKEN_INVALID"
++                    }
++                  },
++                  "sujeitoInvalido": {
++                    "summary": "Sujeito do token inválido",
++                    "value": {
++                      "code": "AUTH_SUBJECT_INVALID",
++                      "message": "AUTH_SUBJECT_INVALID"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "404": {
++            "description": "Operação de resgate desconhecida.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "operacaoDesconhecida": {
++                    "summary": "Operação não encontrada",
++                    "value": {
++                      "code": "OPERATION_UNKNOWN",
++                      "message": "OPERATION_UNKNOWN"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "503": {
++            "description": "Reserva distribuída contra replay indisponível. A autorização falha fechada.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ApiErrorResponse"
++                },
++                "examples": {
++                  "replayIndisponivel": {
++                    "summary": "Armazenamento de replay indisponível",
++                    "value": {
++                      "code": "REPLAY_STORE_UNAVAILABLE",
++                      "message": "REPLAY_STORE_UNAVAILABLE"
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "422": {
++            "description": "Validation Error",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/HTTPValidationError"
++                }
++              }
++            }
++          }
++        },
++        "security": [
++          {
++            "FirebaseIDToken": []
++          }
++        ]
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "ApiErrorResponse": {
++        "properties": {
++          "code": {
++            "type": "string",
++            "title": "Code",
++            "description": "Código de motivo legível por máquina.",
++            "examples": [
++              "AUTH_TOKEN_INVALID"
++            ]
++          },
++          "message": {
++            "type": "string",
++            "title": "Message",
++            "description": "Mensagem de erro legível por pessoa ou operador.",
++            "examples": [
++              "AUTH_TOKEN_INVALID"
++            ]
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "code",
++          "message"
++        ],
++        "title": "ApiErrorResponse",
++        "description": "Envelope estável de erro retornado nas fronteiras de autenticação e serviço.",
++        "examples": [
++          {
++            "code": "AUTH_TOKEN_INVALID",
++            "message": "AUTH_TOKEN_INVALID"
++          }
++        ]
++      },
++      "AuthorizationResponse": {
++        "properties": {
++          "decision": {
++            "type": "string",
++            "enum": [
++              "DENY",
++              "ALLOW",
++              "STEP_UP",
++              "HOLD_OR_REVIEW"
++            ],
++            "title": "Decision",
++            "description": "Decisão determinística de autorização."
++          },
++          "operation_id": {
++            "type": "string",
++            "title": "Operation Id",
++            "description": "Identificador da operação de resgate."
++          },
++          "crypto_ok": {
++            "type": "boolean",
++            "title": "Crypto Ok",
++            "description": "Indica se todos os gates criptográficos obrigatórios foram aprovados."
++          },
++          "reason_codes": {
++            "items": {
++              "type": "string"
++            },
++            "type": "array",
++            "title": "Reason Codes",
++            "description": "Motivos legíveis por máquina que sustentam a decisão."
++          },
++          "coupon_id": {
++            "anyOf": [
++              {
++                "type": "string"
++              },
++              {
++                "type": "null"
++              }
++            ],
++            "title": "Coupon Id",
++            "description": "Cupom liberado somente quando a política permite sua exposição."
++          },
++          "event_ref": {
++            "anyOf": [
++              {
++                "type": "string"
++              },
++              {
++                "type": "null"
++              }
++            ],
++            "title": "Event Ref",
++            "description": "Referência do evento no ledger append-only."
++          },
++          "idempotent": {
++            "type": "boolean",
++            "title": "Idempotent",
++            "description": "Verdadeiro quando se trata de repetição segura de uma operação já concluída.",
++            "default": false
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "decision",
++          "operation_id",
++          "crypto_ok",
++          "reason_codes"
++        ],
++        "title": "AuthorizationResponse",
++        "examples": [
++          {
++            "coupon_id": "FEITUR-021",
++            "crypto_ok": true,
++            "decision": "ALLOW",
++            "event_ref": "event:36cc48bf-908f-4b90-b91e-57951a97be10",
++            "idempotent": false,
++            "operation_id": "op:eea2915b-8783-4c98-9766-39df9c5fcf2e",
++            "reason_codes": []
++          }
++        ]
++      },
++      "AuthorizeRedemptionRequest": {
++        "properties": {
++          "operation_id": {
++            "type": "string",
++            "maxLength": 160,
++            "minLength": 8,
++            "title": "Operation Id",
++            "description": "Identificador da operação retornado pela etapa de início.",
++            "examples": [
++              "op:eea2915b-8783-4c98-9766-39df9c5fcf2e"
++            ]
++          },
++          "session_id": {
++            "type": "string",
++            "maxLength": 160,
++            "minLength": 8,
++            "title": "Session Id",
++            "description": "Identificador da sessão retornado pela etapa de início.",
++            "examples": [
++              "session:9d9f36e2-69ac-433d-a168-e4a4af1365ac"
++            ]
++          },
++          "challenge_id": {
++            "type": "string",
++            "maxLength": 160,
++            "minLength": 16,
++            "title": "Challenge Id",
++            "description": "Identificador do desafio de uso único retornado pela etapa de início.",
++            "examples": [
++              "challenge:8d74f40a-70f0-4aa1-ae42-ef6749b6020e"
++            ]
++          },
++          "device_key_id": {
++            "type": "string",
++            "maxLength": 160,
++            "minLength": 12,
++            "title": "Device Key Id",
++            "description": "Chave do dispositivo de resgate vinculada à operação.",
++            "examples": [
++              "device:expo:visitante:01"
++            ]
++          },
++          "device_proof_b64u": {
++            "type": "string",
++            "maxLength": 88,
++            "minLength": 86,
++            "pattern": "^[A-Za-z0-9_-]+$",
++            "title": "Device Proof B64U",
++            "description": "Assinatura Ed25519 sobre `proof_message_b64u`, codificada em Base64URL sem preenchimento.",
++            "examples": [
++              "9gAbmslLvGHuEFDf8h39jnVSrzC-ns48Boo5yHpFtOuXJEh3tockZ39gAbmslLvGHuEFDf8h39jnVSrzC-ns48"
++            ]
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "operation_id",
++          "session_id",
++          "challenge_id",
++          "device_key_id",
++          "device_proof_b64u"
++        ],
++        "title": "AuthorizeRedemptionRequest",
++        "examples": [
++          {
++            "challenge_id": "challenge:8d74f40a-70f0-4aa1-ae42-ef6749b6020e",
++            "device_key_id": "device:expo:visitante:01",
++            "device_proof_b64u": "9gAbmslLvGHuEFDf8h39jnVSrzC-ns48Boo5yHpFtOuXJEh3tockZ39gAbmslLvGHuEFDf8h39jnVSrzC-ns48",
++            "operation_id": "op:eea2915b-8783-4c98-9766-39df9c5fcf2e",
++            "session_id": "session:9d9f36e2-69ac-433d-a168-e4a4af1365ac"
++          }
++        ]
++      },
++      "BeginRedemptionRequest": {
++        "properties": {
++          "qr_payload": {
++            "$ref": "#/components/schemas/CompactQrPayload",
++            "description": "Payload de QR produzido pelo endpoint de emissão."
++          },
++          "device_key_id": {
++            "type": "string",
++            "maxLength": 160,
++            "minLength": 12,
++            "title": "Device Key Id",
++            "description": "Chave do dispositivo de resgate previamente cadastrada.",
++            "examples": [
++              "device:expo:visitante:01"
++            ]
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "qr_payload",
++          "device_key_id"
++        ],
++        "title": "BeginRedemptionRequest",
++        "examples": [
++          {
++            "device_key_id": "device:expo:visitante:01",
++            "qr_payload": {
++              "expires_at": 1783811490,
++              "issuer_ref": "issuer:4f1c5f4a93f2",
++              "token_ref": "y2Q33r5Tgpiz7ibyWkFI9L7tt-Xah6un",
++              "type": "trq-bec-coupon-v1",
++              "v": 1
++            }
++          }
++        ]
++      },
++      "BeginRedemptionResponse": {
++        "properties": {
++          "operation_id": {
++            "type": "string",
++            "title": "Operation Id",
++            "description": "Identificador estável da operação de resgate.",
++            "examples": [
++              "op:eea2915b-8783-4c98-9766-39df9c5fcf2e"
++            ]
++          },
++          "session_id": {
++            "type": "string",
++            "title": "Session Id",
++            "description": "Identificador da sessão vinculado ao desafio e ao dispositivo.",
++            "examples": [
++              "session:9d9f36e2-69ac-433d-a168-e4a4af1365ac"
++            ]
++          },
++          "challenge": {
++            "$ref": "#/components/schemas/ChallengeResponse"
++          },
++          "proof_message_b64u": {
++            "type": "string",
++            "title": "Proof Message B64U",
++            "description": "Bytes exatos da mensagem, codificados em Base64URL sem preenchimento, que o dispositivo deve assinar.",
++            "examples": [
++              "VFJRLUJFQy9kZXZpY2UtcHJvb2YvdjE6ZXhhbXBsZS1wcm9vZi1tZXNzYWdl"
++            ]
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "operation_id",
++          "session_id",
++          "challenge",
++          "proof_message_b64u"
++        ],
++        "title": "BeginRedemptionResponse",
++        "examples": [
++          {
++            "challenge": {
++              "challenge_id": "challenge:8d74f40a-70f0-4aa1-ae42-ef6749b6020e",
++              "expires_at": 1783811445
++            },
++            "operation_id": "op:eea2915b-8783-4c98-9766-39df9c5fcf2e",
++            "proof_message_b64u": "VFJRLUJFQy9kZXZpY2UtcHJvb2YvdjE6ZXhhbXBsZS1wcm9vZi1tZXNzYWdl",
++            "session_id": "session:9d9f36e2-69ac-433d-a168-e4a4af1365ac"
++          }
++        ]
++      },
++      "ChallengeResponse": {
++        "properties": {
++          "challenge_id": {
++            "type": "string",
++            "title": "Challenge Id",
++            "description": "Identificador do desafio de frescor de uso único.",
++            "examples": [
++              "challenge:8d74f40a-70f0-4aa1-ae42-ef6749b6020e"
++            ]
++          },
++          "expires_at": {
++            "type": "integer",
++            "title": "Expires At",
++            "description": "Expiração do desafio em tempo Unix, em segundos.",
++            "examples": [
++              1783811445
++            ]
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "challenge_id",
++          "expires_at"
++        ],
++        "title": "ChallengeResponse"
++      },
++      "CompactQrPayload": {
++        "properties": {
++          "type": {
++            "type": "string",
++            "const": "trq-bec-coupon-v1",
++            "title": "Type",
++            "description": "Discriminador do contrato compacto de QR do cupom.",
++            "default": "trq-bec-coupon-v1"
++          },
++          "v": {
++            "type": "integer",
++            "const": 1,
++            "title": "V",
++            "description": "Versão do contrato de QR.",
++            "default": 1
++          },
++          "token_ref": {
++            "type": "string",
++            "maxLength": 128,
++            "minLength": 22,
++            "pattern": "^[A-Za-z0-9_-]+$",
++            "title": "Token Ref",
++            "description": "Referência opaca do token no servidor; o envelope assinado não é exposto no QR.",
++            "examples": [
++              "y2Q33r5Tgpiz7ibyWkFI9L7tt-Xah6un"
++            ]
++          },
++          "issuer_ref": {
++            "type": "string",
++            "maxLength": 160,
++            "minLength": 1,
++            "title": "Issuer Ref",
++            "description": "Referência pseudonimizada do emissor vinculada ao token.",
++            "examples": [
++              "issuer:4f1c5f4a93f2"
++            ]
++          },
++          "expires_at": {
++            "type": "integer",
++            "title": "Expires At",
++            "description": "Expiração do token em tempo Unix, em segundos.",
++            "examples": [
++              1783811490
++            ]
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "token_ref",
++          "issuer_ref",
++          "expires_at"
++        ],
++        "title": "CompactQrPayload",
++        "examples": [
++          {
++            "expires_at": 1783811490,
++            "issuer_ref": "issuer:4f1c5f4a93f2",
++            "token_ref": "y2Q33r5Tgpiz7ibyWkFI9L7tt-Xah6un",
++            "type": "trq-bec-coupon-v1",
++            "v": 1
++          }
++        ]
++      },
++      "CryptoHealthResponse": {
++        "properties": {
++          "provider": {
++            "type": "string",
++            "title": "Provider",
++            "description": "Nome da implementação do provider.",
++            "examples": [
++              "UNAVAILABLE"
++            ]
++          },
++          "version": {
++            "type": "string",
++            "title": "Version",
++            "description": "Versão da implementação do provider.",
++            "examples": [
++              "0"
++            ]
++          },
++          "approved": {
++            "type": "boolean",
++            "title": "Approved",
++            "description": "Estado explícito de aprovação administrativa.",
++            "examples": [
++              false
++            ]
++          },
++          "self_test_passed": {
++            "type": "boolean",
++            "title": "Self Test Passed",
++            "description": "Resultado do autoteste do provider na inicialização.",
++            "examples": [
++              false
++            ]
++          },
++          "ml_kem_768": {
++            "type": "boolean",
++            "title": "Ml Kem 768",
++            "description": "Disponibilidade de ML-KEM-768.",
++            "examples": [
++              false
++            ]
++          },
++          "ml_dsa_65": {
++            "type": "boolean",
++            "title": "Ml Dsa 65",
++            "description": "Disponibilidade de ML-DSA-65.",
++            "examples": [
++              false
++            ]
++          },
++          "ready": {
++            "type": "boolean",
++            "title": "Ready",
++            "description": "Prontidão agregada do provider usada pelos gates fail-closed.",
++            "examples": [
++              false
++            ]
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "provider",
++          "version",
++          "approved",
++          "self_test_passed",
++          "ml_kem_768",
++          "ml_dsa_65",
++          "ready"
++        ],
++        "title": "CryptoHealthResponse",
++        "examples": [
++          {
++            "approved": false,
++            "ml_dsa_65": false,
++            "ml_kem_768": false,
++            "provider": "UNAVAILABLE",
++            "ready": false,
++            "self_test_passed": false,
++            "version": "0"
++          }
++        ]
++      },
++      "EnrollDeviceRequest": {
++        "properties": {
++          "device_key_id": {
++            "type": "string",
++            "maxLength": 160,
++            "minLength": 12,
++            "pattern": "^device:[A-Za-z0-9:_-]+$",
++            "title": "Device Key Id",
++            "description": "Identificador estável da aplicação para a chave local do dispositivo.",
++            "examples": [
++              "device:expo:feirante:01"
++            ]
++          },
++          "public_key_b64u": {
++            "type": "string",
++            "maxLength": 43,
++            "minLength": 43,
++            "pattern": "^[A-Za-z0-9_-]+$",
++            "title": "Public Key B64U",
++            "description": "Chave pública Ed25519 bruta codificada em Base64URL sem preenchimento (perfil de laboratório).",
++            "examples": [
++              "iOZAaQkSG1nU4MV5kY_IRQAxIQ1o9S87b2m3oxygTlw"
++            ]
++          },
++          "algorithm": {
++            "type": "string",
++            "const": "ED25519_LAB",
++            "title": "Algorithm",
++            "description": "Algoritmo de prova do dispositivo habilitado nesta versão de laboratório."
++          },
++          "storage_profile": {
++            "type": "string",
++            "const": "EXPO_SECURE_STORE_LAB",
++            "title": "Storage Profile",
++            "description": "Perfil esperado de proteção local da chave privada."
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "device_key_id",
++          "public_key_b64u",
++          "algorithm",
++          "storage_profile"
++        ],
++        "title": "EnrollDeviceRequest",
++        "examples": [
++          {
++            "algorithm": "ED25519_LAB",
++            "device_key_id": "device:expo:feirante:01",
++            "public_key_b64u": "iOZAaQkSG1nU4MV5kY_IRQAxIQ1o9S87b2m3oxygTlw",
++            "storage_profile": "EXPO_SECURE_STORE_LAB"
++          }
++        ]
++      },
++      "EnrollDeviceResponse": {
++        "properties": {
++          "device_key_id": {
++            "type": "string",
++            "title": "Device Key Id",
++            "description": "Identificador da chave do dispositivo aceito pelo backend."
++          },
++          "status": {
++            "type": "string",
++            "enum": [
++              "ENROLLED",
++              "ALREADY_ENROLLED"
++            ],
++            "title": "Status",
++            "description": "Resultado idempotente do cadastro."
++          },
++          "key_ref": {
++            "type": "string",
++            "title": "Key Ref",
++            "description": "Referência pseudonimizada da chave, segura para registros de auditoria."
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "device_key_id",
++          "status",
++          "key_ref"
++        ],
++        "title": "EnrollDeviceResponse",
++        "examples": [
++          {
++            "device_key_id": "device:expo:feirante:01",
++            "key_ref": "devref:3x6vT0ph2QmN8sYk",
++            "status": "ENROLLED"
++          }
++        ]
++      },
++      "HTTPValidationError": {
++        "properties": {
++          "detail": {
++            "items": {
++              "$ref": "#/components/schemas/ValidationError"
++            },
++            "type": "array",
++            "title": "Detail"
++          }
++        },
++        "type": "object",
++        "title": "HTTPValidationError"
++      },
++      "HealthResponse": {
++        "properties": {
++          "status": {
++            "type": "string",
++            "enum": [
++              "ok",
++              "degraded"
++            ],
++            "title": "Status",
++            "description": "Estado geral da infraestrutura."
++          },
++          "database": {
++            "type": "boolean",
++            "title": "Database",
++            "description": "Conectividade com PostgreSQL."
++          },
++          "redis": {
++            "type": "boolean",
++            "title": "Redis",
++            "description": "Conectividade com Redis."
++          },
++          "crypto_provider": {
++            "type": "string",
++            "title": "Crypto Provider",
++            "description": "Provider ativo ou estado explícito de laboratório com PQ bloqueado."
++          },
++          "pqc_ready": {
++            "type": "boolean",
++            "title": "Pqc Ready",
++            "description": "Verdadeiro somente quando o provider PQC aprovado está pronto e passou pelo autoteste."
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "status",
++          "database",
++          "redis",
++          "crypto_provider",
++          "pqc_ready"
++        ],
++        "title": "HealthResponse",
++        "examples": [
++          {
++            "crypto_provider": "LAB_ED25519_PQ_BLOCKED",
++            "database": true,
++            "pqc_ready": false,
++            "redis": true,
++            "status": "ok"
++          }
++        ]
++      },
++      "IssueCouponRequest": {
++        "properties": {
++          "coupon_id": {
++            "type": "string",
++            "pattern": "^FEITUR-\\d{3}$",
++            "title": "Coupon Id",
++            "description": "Identificador comercial do cupom no catálogo FEITUR.",
++            "examples": [
++              "FEITUR-021"
++            ]
++          },
++          "issuer_id": {
++            "type": "string",
++            "maxLength": 128,
++            "minLength": 1,
++            "title": "Issuer Id",
++            "description": "Firebase UID do empreendedor autenticado. Deve corresponder ao sujeito do token.",
++            "examples": [
++              "firebase-uid-feirante-001"
++            ]
++          },
++          "city": {
++            "type": "string",
++            "maxLength": 120,
++            "minLength": 1,
++            "title": "City",
++            "description": "Contexto de cidade vinculado à intenção do cupom.",
++            "examples": [
++              "Pinhais - PR"
++            ]
++          },
++          "device_key_id": {
++            "type": "string",
++            "maxLength": 160,
++            "minLength": 12,
++            "title": "Device Key Id",
++            "description": "Chave do dispositivo emissor previamente cadastrada.",
++            "examples": [
++              "device:expo:feirante:01"
++            ]
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "coupon_id",
++          "issuer_id",
++          "city",
++          "device_key_id"
++        ],
++        "title": "IssueCouponRequest",
++        "examples": [
++          {
++            "city": "Pinhais - PR",
++            "coupon_id": "FEITUR-021",
++            "device_key_id": "device:expo:feirante:01",
++            "issuer_id": "firebase-uid-feirante-001"
++          }
++        ]
++      },
++      "IssueCouponResponse": {
++        "properties": {
++          "qr_payload": {
++            "$ref": "#/components/schemas/CompactQrPayload",
++            "description": "Payload compacto para codificação no QR do cupom."
++          },
++          "expires_at": {
++            "type": "integer",
++            "title": "Expires At",
++            "description": "Expiração do envelope em tempo Unix, em segundos.",
++            "examples": [
++              1783811490
++            ]
++          }
++        },
++        "additionalProperties": false,
++        "type": "object",
++        "required": [
++          "qr_payload",
++          "expires_at"
++        ],
++        "title": "IssueCouponResponse",
++        "examples": [
++          {
++            "expires_at": 1783811490,
++            "qr_payload": {
++              "expires_at": 1783811490,
++              "issuer_ref": "issuer:4f1c5f4a93f2",
++              "token_ref": "y2Q33r5Tgpiz7ibyWkFI9L7tt-Xah6un",
++              "type": "trq-bec-coupon-v1",
++              "v": 1
++            }
++          }
++        ]
++      },
++      "ValidationError": {
++        "properties": {
++          "loc": {
++            "items": {
++              "anyOf": [
++                {
++                  "type": "string"
++                },
++                {
++                  "type": "integer"
++                }
++              ]
++            },
++            "type": "array",
++            "title": "Location"
++          },
++          "msg": {
++            "type": "string",
++            "title": "Message"
++          },
++          "type": {
++            "type": "string",
++            "title": "Error Type"
++          },
++          "input": {
++            "title": "Input"
++          },
++          "ctx": {
++            "type": "object",
++            "title": "Context"
++          }
++        },
++        "type": "object",
++        "required": [
++          "loc",
++          "msg",
++          "type"
++        ],
++        "title": "ValidationError"
++      }
++    },
++    "securitySchemes": {
++      "FirebaseIDToken": {
++        "type": "http",
++        "description": "Firebase ID token emitido para o usuário autenticado do LiberRotas. Cole somente o valor do token; a Swagger UI acrescenta o prefixo `Bearer` automaticamente.",
++        "scheme": "bearer",
++        "bearerFormat": "Firebase ID token (JWT)"
++      }
++    }
++  },
++  "tags": [
++    {
++      "name": "Saúde e prontidão",
++      "description": "Diagnósticos sem autenticação para disponibilidade do banco, Redis e provider criptográfico. Não representam autorização de negócio."
++    },
++    {
++      "name": "Dispositivos",
++      "description": "Cadastro e vinculação de chaves públicas de dispositivo ao sujeito autenticado pelo Firebase."
++    },
++    {
++      "name": "Cupons",
++      "description": "Emissão autoritativa de cupons por contas empreendedoras, com vínculo de identidade, dispositivo e política."
++    },
++    {
++      "name": "Resgate",
++      "description": "Fluxo em duas etapas: criação de desafio de uso único e autorização mediante prova de posse da chave."
++    }
++  ]
++}
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/pyproject.toml trq_buckles/pyproject.toml
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/pyproject.toml	2026-07-12 00:53:42.510110849 +0000
++++ trq_buckles/pyproject.toml	2026-07-12 01:24:08.972263426 +0000
+@@ -4,7 +4,7 @@
+ 
+ [project]
+ name = "trq-bec"
+-version = "0.5.0a1"
++version = "0.5.0a2"
+ description = "TRQ-BEC backend reference implementation for app_LiberRotas"
+ readme = "README.md"
+ requires-python = ">=3.11"
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/__init__.py trq_buckles/src/trq_bec/__init__.py
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/__init__.py	2026-07-11 01:14:52.000000000 +0000
++++ trq_buckles/src/trq_bec/__init__.py	2026-07-12 01:24:08.972515101 +0000
+@@ -1,3 +1,3 @@
+ """TRQ-BEC laboratory reference implementation."""
+ 
+-__version__ = "0.5.0a1"
++__version__ = "0.5.0a2"
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/app.py trq_buckles/src/trq_bec/server/app.py
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/app.py	2026-07-12 00:51:29.558194662 +0000
++++ trq_buckles/src/trq_bec/server/app.py	2026-07-12 01:23:18.186248778 +0000
+@@ -1,28 +1,44 @@
+-"""FastAPI transport for the app_LiberRotas TRQ-BEC backend."""
++"""Transporte FastAPI do backend TRQ-BEC para o app_LiberRotas."""
+ 
+ from __future__ import annotations
+ 
+ import uuid
+ from contextlib import asynccontextmanager
++from typing import Any
+ 
+ from fastapi import Depends, FastAPI, HTTPException, Request
+ from fastapi.exceptions import RequestValidationError
+ from fastapi.middleware.cors import CORSMiddleware
++from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
++from fastapi.openapi.utils import get_openapi
+ from fastapi.responses import JSONResponse
++from fastapi.routing import APIRoute
+ 
+ from .. import __version__
+ from .auth import Authenticator, require_principal
+ from .config import ServerSettings, get_settings
+ from .docs import (
+-    API_DESCRIPTION,
+-    AUTH_ERROR_RESPONSES,
+-    CONFLICT_RESPONSE,
+-    OPENAPI_TAGS,
++    ADMIN_FORBIDDEN_RESPONSE,
++    AUTHENTICATION_RESPONSE,
++    AUTHORIZE_NOT_FOUND_RESPONSE,
++    AUTHORIZE_UNAVAILABLE_RESPONSE,
++    BEGIN_BAD_REQUEST_RESPONSE,
++    BEGIN_CONFLICT_RESPONSE,
++    BEGIN_EXPIRED_RESPONSE,
++    BEGIN_FORBIDDEN_RESPONSE,
++    BEGIN_NOT_FOUND_RESPONSE,
++    CHECKPOINT_CONFLICT_RESPONSE,
++    ENROLL_CONFLICT_RESPONSE,
++    INTERNAL_API_DESCRIPTION,
++    INTERNAL_OPENAPI_TAGS,
++    ISSUE_FORBIDDEN_RESPONSE,
++    ISSUE_NOT_FOUND_RESPONSE,
++    ISSUE_UNAVAILABLE_RESPONSE,
++    PUBLIC_API_DESCRIPTION,
++    PUBLIC_OPENAPI_TAGS,
+     SWAGGER_UI_PARAMETERS,
+-    UNAVAILABLE_RESPONSE,
+ )
+ from .models import (
+-    ApiErrorResponse,
+     AuthorizationResponse,
+     AuthorizeRedemptionRequest,
+     BeginRedemptionRequest,
+@@ -65,17 +81,16 @@
+         if runtime is not None:
+             runtime.close()
+ 
++    # As interfaces são registradas manualmente para separar o contrato público do administrativo.
+     app = FastAPI(
+         title="TRQ-BEC LiberRotas API",
+         summary="Fronteira autoritativa de segurança para emissão e resgate de cupons.",
+-        description=API_DESCRIPTION,
++        description=PUBLIC_API_DESCRIPTION,
+         version=__version__,
+         contact={"name": "Equipe TRQ-BEC / LiberRotas"},
+-        openapi_tags=OPENAPI_TAGS,
+-        docs_url="/docs" if documentation_enabled else None,
+-        redoc_url="/redoc" if documentation_enabled else None,
+-        openapi_url="/openapi.json" if documentation_enabled else None,
+-        swagger_ui_parameters=SWAGGER_UI_PARAMETERS,
++        docs_url=None,
++        redoc_url=None,
++        openapi_url=None,
+         lifespan=lifespan,
+     )
+     app.add_middleware(
+@@ -119,9 +134,7 @@
+     async def validation_error_handler(_: Request, exc: RequestValidationError):
+         return JSONResponse(
+             status_code=422,
+-            content={
+-                "detail": exc.errors(),
+-            },
++            content={"detail": exc.errors()},
+             headers={"cache-control": "no-store"},
+         )
+ 
+@@ -135,7 +148,7 @@
+         summary="Verificar a saúde da infraestrutura",
+         description=(
+             "Confirma conectividade com PostgreSQL e Redis e informa se a camada criptográfica "
+-            "pós-quântica está pronta. Endpoint público para probes de operação."
++            "pós-quântica está pronta. Endpoint público para sondas operacionais."
+         ),
+         operation_id="getInfrastructureHealth",
+         response_description="Estado consolidado da infraestrutura.",
+@@ -149,7 +162,7 @@
+         tags=["Saúde e prontidão"],
+         summary="Verificar o provider criptográfico",
+         description=(
+-            "Expõe a identidade, aprovação, self-test e suporte algorítmico do provider. "
++            "Expõe identidade, aprovação, autoteste e suporte algorítmico do provider. "
+             "`ready=false` mantém os fluxos pós-quânticos bloqueados por construção."
+         ),
+         operation_id="getCryptoProviderHealth",
+@@ -178,7 +191,7 @@
+         ),
+         operation_id="enrollDevice",
+         response_description="Dispositivo cadastrado ou já cadastrado para o mesmo sujeito.",
+-        responses={**AUTH_ERROR_RESPONSES, **CONFLICT_RESPONSE},
++        responses={**AUTHENTICATION_RESPONSE, **ENROLL_CONFLICT_RESPONSE},
+     )
+     def enroll_device(
+         payload: EnrollDeviceRequest,
+@@ -199,13 +212,10 @@
+         operation_id="issueCoupon",
+         response_description="Payload compacto para QR e prazo de validade do envelope.",
+         responses={
+-            **AUTH_ERROR_RESPONSES,
+-            404: {
+-                "model": ApiErrorResponse,
+-                "description": "Cupom inexistente, inativo ou não pertencente ao emissor.",
+-            },
+-            **CONFLICT_RESPONSE,
+-            **UNAVAILABLE_RESPONSE,
++            **AUTHENTICATION_RESPONSE,
++            **ISSUE_FORBIDDEN_RESPONSE,
++            **ISSUE_NOT_FOUND_RESPONSE,
++            **ISSUE_UNAVAILABLE_RESPONSE,
+         },
+     )
+     def issue_coupon(
+@@ -227,11 +237,12 @@
+         operation_id="beginCouponRedemption",
+         response_description="Operação pendente, desafio de frescor e mensagem para prova de posse.",
+         responses={
+-            **AUTH_ERROR_RESPONSES,
+-            400: {"model": ApiErrorResponse, "description": "QR inválido ou vínculo criptográfico inconsistente."},
+-            404: {"model": ApiErrorResponse, "description": "Referência de token desconhecida."},
+-            410: {"model": ApiErrorResponse, "description": "Token expirado."},
+-            **CONFLICT_RESPONSE,
++            **AUTHENTICATION_RESPONSE,
++            **BEGIN_BAD_REQUEST_RESPONSE,
++            **BEGIN_FORBIDDEN_RESPONSE,
++            **BEGIN_NOT_FOUND_RESPONSE,
++            **BEGIN_CONFLICT_RESPONSE,
++            **BEGIN_EXPIRED_RESPONSE,
+         },
+     )
+     def begin_redemption(
+@@ -253,9 +264,9 @@
+         operation_id="authorizeCouponRedemption",
+         response_description="Decisão autoritativa e referência de evidência no ledger.",
+         responses={
+-            **AUTH_ERROR_RESPONSES,
+-            404: {"model": ApiErrorResponse, "description": "Operação de resgate desconhecida."},
+-            **UNAVAILABLE_RESPONSE,
++            **AUTHENTICATION_RESPONSE,
++            **AUTHORIZE_NOT_FOUND_RESPONSE,
++            **AUTHORIZE_UNAVAILABLE_RESPONSE,
+         },
+     )
+     def authorize_redemption(
+@@ -277,10 +288,11 @@
+         operation_id="createLedgerCheckpoint",
+         response_description="Checkpoint persistido e assinado.",
+         responses={
+-            **AUTH_ERROR_RESPONSES,
+-            409: {"model": ApiErrorResponse, "description": "Ledger vazio ou estado incompatível com checkpoint."},
++            **AUTHENTICATION_RESPONSE,
++            **ADMIN_FORBIDDEN_RESPONSE,
++            **CHECKPOINT_CONFLICT_RESPONSE,
+         },
+-        include_in_schema=documentation_enabled,
++        include_in_schema=True,
+     )
+     def create_checkpoint(
+         request: Request,
+@@ -288,6 +300,94 @@
+     ) -> LedgerCheckpointResponse:
+         return LedgerCheckpointResponse.model_validate(service(request).checkpoint(principal))
+ 
++    schema_cache: dict[str, dict[str, Any]] = {}
++
++    def _build_schema(scope: str) -> dict[str, Any]:
++        cached = schema_cache.get(scope)
++        if cached is not None:
++            return cached
++
++        internal = scope == "internal"
++        selected_routes = [
++            route
++            for route in app.routes
++            if isinstance(route, APIRoute)
++            and route.include_in_schema
++            and route.path.startswith("/internal/") is internal
++        ]
++        schema = get_openapi(
++            title=(
++                "TRQ-BEC LiberRotas API — Contrato administrativo"
++                if internal
++                else "TRQ-BEC LiberRotas API"
++            ),
++            version=__version__,
++            openapi_version=app.openapi_version,
++            summary=(
++                "Operações administrativas de integridade do ledger."
++                if internal
++                else "Fronteira autoritativa de segurança para emissão e resgate de cupons."
++            ),
++            description=INTERNAL_API_DESCRIPTION if internal else PUBLIC_API_DESCRIPTION,
++            routes=selected_routes,
++            tags=INTERNAL_OPENAPI_TAGS if internal else PUBLIC_OPENAPI_TAGS,
++            contact={"name": "Equipe TRQ-BEC / LiberRotas"},
++            separate_input_output_schemas=app.separate_input_output_schemas,
++        )
++        schema_cache[scope] = schema
++        return schema
++
++    def public_openapi() -> dict[str, Any]:
++        return _build_schema("public")
++
++    def internal_openapi() -> dict[str, Any]:
++        return _build_schema("internal")
++
++    # Mantém app.openapi() como contrato público para compatibilidade com ferramentas e exportadores.
++    app.openapi = public_openapi  # type: ignore[method-assign]
++    app.state.public_openapi = public_openapi
++    app.state.internal_openapi = internal_openapi
++
++    if documentation_enabled:
++
++        @app.get("/openapi.json", include_in_schema=False)
++        def public_openapi_json():
++            return JSONResponse(public_openapi())
++
++        @app.get("/docs", include_in_schema=False)
++        def public_swagger_ui():
++            return get_swagger_ui_html(
++                openapi_url="/openapi.json",
++                title="TRQ-BEC LiberRotas API — Swagger UI",
++                swagger_ui_parameters=SWAGGER_UI_PARAMETERS,
++            )
++
++        @app.get("/redoc", include_in_schema=False)
++        def public_redoc():
++            return get_redoc_html(
++                openapi_url="/openapi.json",
++                title="TRQ-BEC LiberRotas API — ReDoc",
++            )
++
++        @app.get("/internal/openapi.json", include_in_schema=False)
++        def internal_openapi_json():
++            return JSONResponse(internal_openapi())
++
++        @app.get("/internal/docs", include_in_schema=False)
++        def internal_swagger_ui():
++            return get_swagger_ui_html(
++                openapi_url="/internal/openapi.json",
++                title="TRQ-BEC LiberRotas — Swagger administrativo",
++                swagger_ui_parameters=SWAGGER_UI_PARAMETERS,
++            )
++
++        @app.get("/internal/redoc", include_in_schema=False)
++        def internal_redoc():
++            return get_redoc_html(
++                openapi_url="/internal/openapi.json",
++                title="TRQ-BEC LiberRotas — ReDoc administrativo",
++            )
++
+     return app
+ 
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/auth.py trq_buckles/src/trq_bec/server/auth.py
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/auth.py	2026-07-12 00:51:29.550983524 +0000
++++ trq_buckles/src/trq_bec/server/auth.py	2026-07-12 01:23:49.344096485 +0000
+@@ -1,4 +1,4 @@
+-"""Firebase ID-token verification boundary and OpenAPI Bearer scheme."""
++"""Fronteira de verificação do Firebase ID token e esquema Bearer do OpenAPI."""
+ 
+ from __future__ import annotations
+ 
+@@ -17,8 +17,8 @@
+     scheme_name="FirebaseIDToken",
+     bearerFormat="Firebase ID token (JWT)",
+     description=(
+-        "Firebase ID token issued to the authenticated LiberRotas user. "
+-        "Paste only the token value; Swagger UI adds the `Bearer` prefix automatically."
++        "Firebase ID token emitido para o usuário autenticado do LiberRotas. "
++        "Cole somente o valor do token; a Swagger UI acrescenta o prefixo `Bearer` automaticamente."
+     ),
+     auto_error=False,
+ )
+@@ -70,7 +70,7 @@
+ 
+ 
+ def extract_bearer(authorization: str | None) -> str:
+-    """Parse a raw Authorization header for non-FastAPI callers and tests."""
++    """Interpreta um cabeçalho Authorization bruto para clientes externos e testes."""
+ 
+     if not authorization or not authorization.startswith("Bearer "):
+         raise HTTPException(
+@@ -92,7 +92,7 @@
+     request: Request,
+     credentials_value: Annotated[HTTPAuthorizationCredentials | None, Security(firebase_id_token)],
+ ) -> Principal:
+-    """Resolve the authenticated principal and publish the Bearer scheme in OpenAPI."""
++    """Resolve o principal autenticado e publica o esquema Bearer no OpenAPI."""
+ 
+     if credentials_value is None:
+         raise HTTPException(
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/docs.py trq_buckles/src/trq_bec/server/docs.py
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/docs.py	2026-07-12 00:50:51.744353139 +0000
++++ trq_buckles/src/trq_bec/server/docs.py	2026-07-12 01:22:23.100382553 +0000
+@@ -1,4 +1,4 @@
+-"""Authoritative OpenAPI metadata for the TRQ-BEC LiberRotas API."""
++"""Metadados OpenAPI autoritativos da TRQ-BEC LiberRotas API."""
+ 
+ from __future__ import annotations
+ 
+@@ -6,7 +6,7 @@
+ 
+ from .models import ApiErrorResponse
+ 
+-API_DESCRIPTION = """
++PUBLIC_API_DESCRIPTION = """
+ ## Fronteira de segurança do LiberRotas
+ 
+ A **TRQ-BEC LiberRotas API** é a camada autoritativa para cadastro de dispositivos,
+@@ -25,12 +25,31 @@
+ 
+ ### Estado desta versão
+ 
+-A versão `0.5.0-alpha.1` mantém Ed25519 apenas como perfil de laboratório.
++A versão `0.5.0-alpha.2` mantém Ed25519 apenas como perfil de laboratório.
+ ML-KEM-768 e ML-DSA-65 permanecem bloqueados até a integração de um provider
+ auditado e aprovado.
+ """.strip()
+ 
+-OPENAPI_TAGS = [
++INTERNAL_API_DESCRIPTION = """
++## Contrato administrativo da TRQ-BEC
++
++Este contrato é destinado exclusivamente a operadores autorizados da infraestrutura
++LiberRotas. As rotas administrativas exigem **Firebase ID token** com a custom claim
++`admin=true`.
++
++### Separação de contratos
++
++As operações internas não aparecem no OpenAPI público, no Swagger público nem na
++ReDoc pública. Esta documentação administrativa também permanece desativada em
++ambiente de produção.
++
++### Integridade do ledger
++
++O checkpoint cobre a cadeia append-only atual, vincula a versão de política ao hash
++raiz e produz uma assinatura verificável com a chave administrativa de checkpoint.
++""".strip()
++
++PUBLIC_OPENAPI_TAGS = [
+     {
+         "name": "Saúde e prontidão",
+         "description": (
+@@ -56,12 +75,16 @@
+             "Fluxo em duas etapas: criação de desafio de uso único e autorização mediante prova de posse da chave."
+         ),
+     },
++]
++
++INTERNAL_OPENAPI_TAGS = [
+     {
+         "name": "Operações internas",
+         "description": (
+-            "Rotas administrativas para integridade do ledger. Exigem custom claim `admin=true` e não integram o contrato público do aplicativo."
++            "Rotas administrativas para integridade do ledger. Exigem custom claim `admin=true` "
++            "e não integram o contrato público do aplicativo."
+         ),
+-    },
++    }
+ ]
+ 
+ SWAGGER_UI_PARAMETERS: dict[str, Any] = {
+@@ -76,59 +99,235 @@
+     "showCommonExtensions": True,
+ }
+ 
+-AUTH_ERROR_RESPONSES = {
+-    401: {
++
++def _error_response(
++    description: str,
++    examples: dict[str, tuple[str, str, str | None]],
++) -> dict[str, Any]:
++    """Cria uma resposta OpenAPI com exemplos nomeados e aderentes ao código real."""
++
++    return {
+         "model": ApiErrorResponse,
+-        "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
++        "description": description,
+         "content": {
+             "application/json": {
+-                "example": {
+-                    "code": "AUTH_TOKEN_INVALID",
+-                    "message": "AUTH_TOKEN_INVALID",
++                "examples": {
++                    key: {
++                        "summary": summary,
++                        "value": {
++                            "code": code,
++                            "message": message or code,
++                        },
++                    }
++                    for key, (summary, code, message) in examples.items()
+                 }
+             }
+         },
+-    },
+-    403: {
+-        "model": ApiErrorResponse,
+-        "description": "Identidade autenticada, porém sem claim, vínculo ou permissão necessária.",
+-        "content": {
+-            "application/json": {
+-                "example": {
+-                    "code": "ENTREPRENEUR_CLAIM_REQUIRED",
+-                    "message": "ENTREPRENEUR_CLAIM_REQUIRED",
+-                }
+-            }
++    }
++
++
++AUTHENTICATION_RESPONSE = {
++    401: _error_response(
++        "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
++        {
++            "bearerAusente": ("Cabeçalho Bearer ausente", "AUTH_BEARER_REQUIRED", None),
++            "bearerInvalido": ("Cabeçalho Bearer inválido", "AUTH_BEARER_INVALID", None),
++            "tokenInvalido": ("Firebase ID token inválido", "AUTH_TOKEN_INVALID", None),
++            "sujeitoInvalido": ("Sujeito do token inválido", "AUTH_SUBJECT_INVALID", None),
+         },
+-    },
++    )
+ }
+ 
+-CONFLICT_RESPONSE = {
+-    409: {
+-        "model": ApiErrorResponse,
+-        "description": "Conflito de vínculo, repetição, token já utilizado ou operação já concluída.",
+-        "content": {
+-            "application/json": {
+-                "example": {
+-                    "code": "TOKEN_NOT_REDEEMABLE",
+-                    "message": "TOKEN_NOT_REDEEMABLE",
+-                }
+-            }
++ENROLL_CONFLICT_RESPONSE = {
++    409: _error_response(
++        "A chave do dispositivo ou a chave pública já está vinculada a outra identidade.",
++        {
++            "identificadorJaVinculado": (
++                "Identificador de chave já vinculado",
++                "DEVICE_KEY_BINDING_CONFLICT",
++                None,
++            ),
++            "chavePublicaJaVinculada": (
++                "Chave pública já vinculada",
++                "DEVICE_PUBLIC_KEY_ALREADY_BOUND",
++                None,
++            ),
+         },
+-    }
++    )
+ }
+ 
+-UNAVAILABLE_RESPONSE = {
+-    503: {
+-        "model": ApiErrorResponse,
+-        "description": "Dependência crítica ou provider criptográfico indisponível. A operação falha fechada.",
+-        "content": {
+-            "application/json": {
+-                "example": {
+-                    "code": "PQC_PROVIDER_NOT_READY",
+-                    "message": "PQC_PROVIDER_NOT_READY",
+-                }
+-            }
++ISSUE_FORBIDDEN_RESPONSE = {
++    403: _error_response(
++        "Identidade autenticada, porém sem claim, vínculo de emissor ou dispositivo necessário.",
++        {
++            "claimEmpreendedor": (
++                "Claim de empreendedor ausente",
++                "ENTREPRENEUR_CLAIM_REQUIRED",
++                None,
++            ),
++            "vinculoEmissor": (
++                "Emissor não corresponde ao Firebase UID",
++                "ISSUER_BINDING_MISMATCH",
++                None,
++            ),
++            "dispositivoNaoCadastrado": (
++                "Dispositivo emissor não cadastrado",
++                "DEVICE_NOT_ENROLLED",
++                None,
++            ),
+         },
+-    }
++    )
++}
++
++ISSUE_NOT_FOUND_RESPONSE = {
++    404: _error_response(
++        "Cupom inexistente, inativo ou não pertencente ao emissor autenticado.",
++        {
++            "cupomIndisponivel": (
++                "Cupom não está ativo ou não pertence ao emissor",
++                "COUPON_NOT_ACTIVE_OR_NOT_OWNED",
++                None,
++            )
++        },
++    )
++}
++
++ISSUE_UNAVAILABLE_RESPONSE = {
++    503: _error_response(
++        "Provider pós-quântico indisponível ou adaptação do envelope ainda não aprovada. A emissão falha fechada.",
++        {
++            "providerNaoPronto": (
++                "Provider pós-quântico não está pronto",
++                "PQC_PROVIDER_NOT_READY",
++                None,
++            ),
++            "adaptadorPendente": (
++                "Adaptador de envelope aguarda aprovação",
++                "PQC_ENVELOPE_ADAPTER_PENDING_APPROVAL",
++                None,
++            ),
++        },
++    )
++}
++
++BEGIN_BAD_REQUEST_RESPONSE = {
++    400: _error_response(
++        "QR inválido, vínculo inconsistente ou envelope criptográfico rejeitado.",
++        {
++            "vinculoQrInvalido": (
++                "QR não corresponde ao token armazenado",
++                "QR_BINDING_MISMATCH",
++                None,
++            ),
++            "tokenCriptograficoInvalido": (
++                "Envelope criptográfico inválido",
++                "TOKEN_CRYPTO_INVALID",
++                None,
++            ),
++        },
++    )
++}
++
++BEGIN_FORBIDDEN_RESPONSE = {
++    403: _error_response(
++        "O dispositivo do visitante não está cadastrado para a identidade autenticada.",
++        {
++            "dispositivoNaoCadastrado": (
++                "Dispositivo de resgate não cadastrado",
++                "DEVICE_NOT_ENROLLED",
++                None,
++            )
++        },
++    )
++}
++
++BEGIN_NOT_FOUND_RESPONSE = {
++    404: _error_response(
++        "Referência de token desconhecida.",
++        {
++            "tokenDesconhecido": (
++                "Referência do token não encontrada",
++                "TOKEN_REFERENCE_UNKNOWN",
++                None,
++            )
++        },
++    )
++}
++
++BEGIN_CONFLICT_RESPONSE = {
++    409: _error_response(
++        "Token já utilizado, retido ou em estado incompatível com novo resgate.",
++        {
++            "tokenNaoResgatavel": (
++                "Token não pode ser resgatado novamente",
++                "TOKEN_NOT_REDEEMABLE",
++                None,
++            )
++        },
++    )
++}
++
++BEGIN_EXPIRED_RESPONSE = {
++    410: _error_response(
++        "Token expirado.",
++        {
++            "tokenExpirado": (
++                "Prazo de validade do token encerrado",
++                "TOKEN_EXPIRED",
++                None,
++            )
++        },
++    )
++}
++
++AUTHORIZE_NOT_FOUND_RESPONSE = {
++    404: _error_response(
++        "Operação de resgate desconhecida.",
++        {
++            "operacaoDesconhecida": (
++                "Operação não encontrada",
++                "OPERATION_UNKNOWN",
++                None,
++            )
++        },
++    )
++}
++
++AUTHORIZE_UNAVAILABLE_RESPONSE = {
++    503: _error_response(
++        "Reserva distribuída contra replay indisponível. A autorização falha fechada.",
++        {
++            "replayIndisponivel": (
++                "Armazenamento de replay indisponível",
++                "REPLAY_STORE_UNAVAILABLE",
++                None,
++            )
++        },
++    )
++}
++
++ADMIN_FORBIDDEN_RESPONSE = {
++    403: _error_response(
++        "Identidade autenticada sem a custom claim administrativa obrigatória.",
++        {
++            "claimAdmin": (
++                "Custom claim admin=true ausente",
++                "ADMIN_CLAIM_REQUIRED",
++                None,
++            )
++        },
++    )
++}
++
++CHECKPOINT_CONFLICT_RESPONSE = {
++    409: _error_response(
++        "Ledger vazio ou estado incompatível com a criação de checkpoint.",
++        {
++            "ledgerVazio": (
++                "Não existem eventos para cobrir",
++                "LEDGER_EMPTY",
++                None,
++            )
++        },
++    )
+ }
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/export_openapi.py trq_buckles/src/trq_bec/server/export_openapi.py
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/export_openapi.py	2026-07-12 00:53:41.397506667 +0000
++++ trq_buckles/src/trq_bec/server/export_openapi.py	2026-07-12 01:24:20.132909947 +0000
+@@ -1,33 +1,50 @@
+-"""Export the authoritative TRQ-BEC OpenAPI contract without starting the server."""
++"""Exporta os contratos OpenAPI público e administrativo sem iniciar o servidor."""
+ 
+ from __future__ import annotations
+ 
+ import argparse
+ import json
+ from pathlib import Path
++from typing import Literal
+ 
+ from .app import create_app
+ from .config import ServerSettings
+ 
++Scope = Literal["public", "internal"]
+ 
+-def export_openapi(output: Path) -> Path:
++
++def export_openapi(output: Path, *, scope: Scope = "public") -> Path:
+     settings = ServerSettings(environment="development", docs_enabled=True)
+-    schema = create_app(settings).openapi()
++    app = create_app(settings)
++    schema = app.state.public_openapi() if scope == "public" else app.state.internal_openapi()
+     output.parent.mkdir(parents=True, exist_ok=True)
+     output.write_text(json.dumps(schema, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+     return output
+ 
+ 
++def _default_output(scope: Scope) -> Path:
++    if scope == "internal":
++        return Path("docs/openapi-liberrotas-internal-v0.5.0a2.json")
++    return Path("docs/openapi-liberrotas-public-v0.5.0a2.json")
++
++
+ def main(argv: list[str] | None = None) -> int:
+-    parser = argparse.ArgumentParser(description="Export the TRQ-BEC LiberRotas OpenAPI contract")
++    parser = argparse.ArgumentParser(description="Exporta um contrato OpenAPI da TRQ-BEC LiberRotas")
++    parser.add_argument(
++        "--scope",
++        choices=("public", "internal"),
++        default="public",
++        help="Contrato a exportar: público ou administrativo",
++    )
+     parser.add_argument(
+         "--output",
+         type=Path,
+-        default=Path("docs/openapi-liberrotas-v0.5.0a1.json"),
+-        help="JSON output path",
++        default=None,
++        help="Caminho do arquivo JSON; quando omitido, usa o nome versionado do escopo",
+     )
+     args = parser.parse_args(argv)
+-    path = export_openapi(args.output)
++    scope: Scope = args.scope
++    path = export_openapi(args.output or _default_output(scope), scope=scope)
+     print(path.resolve())
+     return 0
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/models.py trq_buckles/src/trq_bec/server/models.py
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/models.py	2026-07-12 00:50:51.759599956 +0000
++++ trq_buckles/src/trq_bec/server/models.py	2026-07-12 01:23:39.765855851 +0000
+@@ -1,4 +1,4 @@
+-"""Strict HTTP and persistence contracts."""
++"""Contratos estritos de HTTP e persistência."""
+ 
+ from __future__ import annotations
+ 
+@@ -13,10 +13,10 @@
+ 
+ 
+ class ApiErrorResponse(StrictModel):
+-    """Stable error envelope returned by authentication and service boundaries."""
++    """Envelope estável de erro retornado nas fronteiras de autenticação e serviço."""
+ 
+-    code: str = Field(description="Machine-readable reason code.", examples=["AUTH_TOKEN_INVALID"])
+-    message: str = Field(description="Human- or operator-readable error message.", examples=["AUTH_TOKEN_INVALID"])
++    code: str = Field(description="Código de motivo legível por máquina.", examples=["AUTH_TOKEN_INVALID"])
++    message: str = Field(description="Mensagem de erro legível por pessoa ou operador.", examples=["AUTH_TOKEN_INVALID"])
+ 
+     model_config = ConfigDict(
+         json_schema_extra={
+@@ -35,19 +35,19 @@
+         min_length=12,
+         max_length=160,
+         pattern=r"^device:[A-Za-z0-9:_-]+$",
+-        description="Stable application identifier for the local device key.",
++        description="Identificador estável da aplicação para a chave local do dispositivo.",
+         examples=["device:expo:feirante:01"],
+     )
+     public_key_b64u: str = Field(
+         min_length=43,
+         max_length=43,
+         pattern=r"^[A-Za-z0-9_-]+$",
+-        description="Raw Ed25519 public key encoded as unpadded Base64URL (laboratory profile).",
++        description="Chave pública Ed25519 bruta codificada em Base64URL sem preenchimento (perfil de laboratório).",
+         examples=["iOZAaQkSG1nU4MV5kY_IRQAxIQ1o9S87b2m3oxygTlw"],
+     )
+-    algorithm: Literal["ED25519_LAB"] = Field(description="Device-proof algorithm enabled in this laboratory version.")
++    algorithm: Literal["ED25519_LAB"] = Field(description="Algoritmo de prova do dispositivo habilitado nesta versão de laboratório.")
+     storage_profile: Literal["EXPO_SECURE_STORE_LAB"] = Field(
+-        description="Expected local protection profile for the private key."
++        description="Perfil esperado de proteção local da chave privada."
+     )
+ 
+     model_config = ConfigDict(
+@@ -65,9 +65,9 @@
+ 
+ 
+ class EnrollDeviceResponse(StrictModel):
+-    device_key_id: str = Field(description="Device key identifier accepted by the backend.")
+-    status: Literal["ENROLLED", "ALREADY_ENROLLED"] = Field(description="Idempotent enrollment result.")
+-    key_ref: str = Field(description="Pseudonymized key reference safe for audit records.")
++    device_key_id: str = Field(description="Identificador da chave do dispositivo aceito pelo backend.")
++    status: Literal["ENROLLED", "ALREADY_ENROLLED"] = Field(description="Resultado idempotente do cadastro.")
++    key_ref: str = Field(description="Referência pseudonimizada da chave, segura para registros de auditoria.")
+ 
+     model_config = ConfigDict(
+         json_schema_extra={
+@@ -85,25 +85,25 @@
+ class IssueCouponRequest(StrictModel):
+     coupon_id: str = Field(
+         pattern=r"^FEITUR-\d{3}$",
+-        description="Business coupon identifier in the FEITUR catalogue.",
++        description="Identificador comercial do cupom no catálogo FEITUR.",
+         examples=["FEITUR-021"],
+     )
+     issuer_id: str = Field(
+         min_length=1,
+         max_length=128,
+-        description="Firebase UID of the authenticated entrepreneur. Must match the token subject.",
++        description="Firebase UID do empreendedor autenticado. Deve corresponder ao sujeito do token.",
+         examples=["firebase-uid-feirante-001"],
+     )
+     city: str = Field(
+         min_length=1,
+         max_length=120,
+-        description="City context bound to the coupon intent.",
++        description="Contexto de cidade vinculado à intenção do cupom.",
+         examples=["Pinhais - PR"],
+     )
+     device_key_id: str = Field(
+         min_length=12,
+         max_length=160,
+-        description="Previously enrolled issuer device key.",
++        description="Chave do dispositivo emissor previamente cadastrada.",
+         examples=["device:expo:feirante:01"],
+     )
+ 
+@@ -124,24 +124,24 @@
+ class CompactQrPayload(StrictModel):
+     type: Literal["trq-bec-coupon-v1"] = Field(
+         default="trq-bec-coupon-v1",
+-        description="Discriminator for the compact coupon QR contract.",
++        description="Discriminador do contrato compacto de QR do cupom.",
+     )
+-    v: Literal[1] = Field(default=1, description="QR contract version.")
++    v: Literal[1] = Field(default=1, description="Versão do contrato de QR.")
+     token_ref: str = Field(
+         min_length=22,
+         max_length=128,
+         pattern=r"^[A-Za-z0-9_-]+$",
+-        description="Opaque server-side token reference; the signed envelope is not exposed in the QR code.",
++        description="Referência opaca do token no servidor; o envelope assinado não é exposto no QR.",
+         examples=["y2Q33r5Tgpiz7ibyWkFI9L7tt-Xah6un"],
+     )
+     issuer_ref: str = Field(
+         min_length=1,
+         max_length=160,
+-        description="Pseudonymized issuer reference bound to the token.",
++        description="Referência pseudonimizada do emissor vinculada ao token.",
+         examples=["issuer:4f1c5f4a93f2"],
+     )
+     expires_at: int = Field(
+-        description="Token expiration as Unix time in seconds.",
++        description="Expiração do token em tempo Unix, em segundos.",
+         examples=[1783811490],
+     )
+ 
+@@ -161,8 +161,8 @@
+ 
+ 
+ class IssueCouponResponse(StrictModel):
+-    qr_payload: CompactQrPayload = Field(description="Compact payload to encode in the coupon QR code.")
+-    expires_at: int = Field(description="Envelope expiration as Unix time in seconds.", examples=[1783811490])
++    qr_payload: CompactQrPayload = Field(description="Payload compacto para codificação no QR do cupom.")
++    expires_at: int = Field(description="Expiração do envelope em tempo Unix, em segundos.", examples=[1783811490])
+ 
+     model_config = ConfigDict(
+         json_schema_extra={
+@@ -183,11 +183,11 @@
+ 
+ 
+ class BeginRedemptionRequest(StrictModel):
+-    qr_payload: CompactQrPayload = Field(description="QR payload produced by the issuance endpoint.")
++    qr_payload: CompactQrPayload = Field(description="Payload de QR produzido pelo endpoint de emissão.")
+     device_key_id: str = Field(
+         min_length=12,
+         max_length=160,
+-        description="Previously enrolled redeemer device key.",
++        description="Chave do dispositivo de resgate previamente cadastrada.",
+         examples=["device:expo:visitante:01"],
+     )
+ 
+@@ -210,16 +210,16 @@
+ 
+ 
+ class ChallengeResponse(StrictModel):
+-    challenge_id: str = Field(description="Single-use freshness challenge identifier.", examples=["challenge:8d74f40a-70f0-4aa1-ae42-ef6749b6020e"])
+-    expires_at: int = Field(description="Challenge expiration as Unix time in seconds.", examples=[1783811445])
++    challenge_id: str = Field(description="Identificador do desafio de frescor de uso único.", examples=["challenge:8d74f40a-70f0-4aa1-ae42-ef6749b6020e"])
++    expires_at: int = Field(description="Expiração do desafio em tempo Unix, em segundos.", examples=[1783811445])
+ 
+ 
+ class BeginRedemptionResponse(StrictModel):
+-    operation_id: str = Field(description="Stable identifier for the redemption operation.", examples=["op:eea2915b-8783-4c98-9766-39df9c5fcf2e"])
+-    session_id: str = Field(description="Session identifier bound to the challenge and device.", examples=["session:9d9f36e2-69ac-433d-a168-e4a4af1365ac"])
++    operation_id: str = Field(description="Identificador estável da operação de resgate.", examples=["op:eea2915b-8783-4c98-9766-39df9c5fcf2e"])
++    session_id: str = Field(description="Identificador da sessão vinculado ao desafio e ao dispositivo.", examples=["session:9d9f36e2-69ac-433d-a168-e4a4af1365ac"])
+     challenge: ChallengeResponse
+     proof_message_b64u: str = Field(
+-        description="Exact message bytes, encoded as unpadded Base64URL, that the device must sign.",
++        description="Bytes exatos da mensagem, codificados em Base64URL sem preenchimento, que o dispositivo deve assinar.",
+         examples=["VFJRLUJFQy9kZXZpY2UtcHJvb2YvdjE6ZXhhbXBsZS1wcm9vZi1tZXNzYWdl"],
+     )
+ 
+@@ -244,32 +244,32 @@
+     operation_id: str = Field(
+         min_length=8,
+         max_length=160,
+-        description="Operation identifier returned by the begin step.",
++        description="Identificador da operação retornado pela etapa de início.",
+         examples=["op:eea2915b-8783-4c98-9766-39df9c5fcf2e"],
+     )
+     session_id: str = Field(
+         min_length=8,
+         max_length=160,
+-        description="Session identifier returned by the begin step.",
++        description="Identificador da sessão retornado pela etapa de início.",
+         examples=["session:9d9f36e2-69ac-433d-a168-e4a4af1365ac"],
+     )
+     challenge_id: str = Field(
+         min_length=16,
+         max_length=160,
+-        description="Single-use challenge identifier returned by the begin step.",
++        description="Identificador do desafio de uso único retornado pela etapa de início.",
+         examples=["challenge:8d74f40a-70f0-4aa1-ae42-ef6749b6020e"],
+     )
+     device_key_id: str = Field(
+         min_length=12,
+         max_length=160,
+-        description="Redeemer device key bound to the operation.",
++        description="Chave do dispositivo de resgate vinculada à operação.",
+         examples=["device:expo:visitante:01"],
+     )
+     device_proof_b64u: str = Field(
+         min_length=86,
+         max_length=88,
+         pattern=r"^[A-Za-z0-9_-]+$",
+-        description="Ed25519 signature over `proof_message_b64u`, encoded as unpadded Base64URL.",
++        description="Assinatura Ed25519 sobre `proof_message_b64u`, codificada em Base64URL sem preenchimento.",
+         examples=["9gAbmslLvGHuEFDf8h39jnVSrzC-ns48Boo5yHpFtOuXJEh3tockZ39gAbmslLvGHuEFDf8h39jnVSrzC-ns48"],
+     )
+ 
+@@ -290,14 +290,14 @@
+ 
+ class AuthorizationResponse(StrictModel):
+     decision: Literal["DENY", "ALLOW", "STEP_UP", "HOLD_OR_REVIEW"] = Field(
+-        description="Deterministic authorization decision."
++        description="Decisão determinística de autorização."
+     )
+-    operation_id: str = Field(description="Redemption operation identifier.")
+-    crypto_ok: bool = Field(description="Whether all mandatory cryptographic gates passed.")
+-    reason_codes: list[str] = Field(description="Machine-readable reasons supporting the decision.")
+-    coupon_id: str | None = Field(default=None, description="Coupon released only when policy permits disclosure.")
+-    event_ref: str | None = Field(default=None, description="Append-only ledger event reference.")
+-    idempotent: bool = Field(default=False, description="True when this is a safe replay of an already completed operation.")
++    operation_id: str = Field(description="Identificador da operação de resgate.")
++    crypto_ok: bool = Field(description="Indica se todos os gates criptográficos obrigatórios foram aprovados.")
++    reason_codes: list[str] = Field(description="Motivos legíveis por máquina que sustentam a decisão.")
++    coupon_id: str | None = Field(default=None, description="Cupom liberado somente quando a política permite sua exposição.")
++    event_ref: str | None = Field(default=None, description="Referência do evento no ledger append-only.")
++    idempotent: bool = Field(default=False, description="Verdadeiro quando se trata de repetição segura de uma operação já concluída.")
+ 
+     model_config = ConfigDict(
+         json_schema_extra={
+@@ -317,11 +317,11 @@
+ 
+ 
+ class HealthResponse(StrictModel):
+-    status: Literal["ok", "degraded"] = Field(description="Overall infrastructure state.")
+-    database: bool = Field(description="PostgreSQL connectivity.")
+-    redis: bool = Field(description="Redis connectivity.")
+-    crypto_provider: str = Field(description="Active provider, or explicit laboratory/PQ-blocked state.")
+-    pqc_ready: bool = Field(description="True only when the approved PQC provider is ready and self-tested.")
++    status: Literal["ok", "degraded"] = Field(description="Estado geral da infraestrutura.")
++    database: bool = Field(description="Conectividade com PostgreSQL.")
++    redis: bool = Field(description="Conectividade com Redis.")
++    crypto_provider: str = Field(description="Provider ativo ou estado explícito de laboratório com PQ bloqueado.")
++    pqc_ready: bool = Field(description="Verdadeiro somente quando o provider PQC aprovado está pronto e passou pelo autoteste.")
+ 
+     model_config = ConfigDict(
+         json_schema_extra={
+@@ -339,13 +339,13 @@
+ 
+ 
+ class CryptoHealthResponse(StrictModel):
+-    provider: str = Field(description="Provider implementation name.", examples=["UNAVAILABLE"])
+-    version: str = Field(description="Provider implementation version.", examples=["0"])
+-    approved: bool = Field(description="Explicit administrative approval status.", examples=[False])
+-    self_test_passed: bool = Field(description="Provider startup self-test result.", examples=[False])
+-    ml_kem_768: bool = Field(description="Availability of ML-KEM-768.", examples=[False])
+-    ml_dsa_65: bool = Field(description="Availability of ML-DSA-65.", examples=[False])
+-    ready: bool = Field(description="Aggregate provider readiness used by fail-closed gates.", examples=[False])
++    provider: str = Field(description="Nome da implementação do provider.", examples=["UNAVAILABLE"])
++    version: str = Field(description="Versão da implementação do provider.", examples=["0"])
++    approved: bool = Field(description="Estado explícito de aprovação administrativa.", examples=[False])
++    self_test_passed: bool = Field(description="Resultado do autoteste do provider na inicialização.", examples=[False])
++    ml_kem_768: bool = Field(description="Disponibilidade de ML-KEM-768.", examples=[False])
++    ml_dsa_65: bool = Field(description="Disponibilidade de ML-DSA-65.", examples=[False])
++    ready: bool = Field(description="Prontidão agregada do provider usada pelos gates fail-closed.", examples=[False])
+ 
+     model_config = ConfigDict(
+         json_schema_extra={
+@@ -365,12 +365,12 @@
+ 
+ 
+ class LedgerCheckpointResponse(StrictModel):
+-    first_seq: int = Field(description="First ledger sequence included in the checkpoint.", examples=[1])
+-    last_seq: int = Field(description="Last ledger sequence included in the checkpoint.", examples=[128])
+-    root_hash: str = Field(description="Hash of the last event in the covered append-only chain.", examples=["6fb9c64085cbd1e2234916f2ab6ad37c3de9a9d2c731e6052ee742c67358ee2a"])
+-    policy_version: str = Field(description="Policy version bound to the signed checkpoint.", examples=["liberrotas-policy-1"])
+-    checkpoint_id: str = Field(description="Checkpoint UUID.", examples=["574cfa87-0c9b-4f0c-9ee0-719ee5c06f80"])
+-    signature_b64u: str = Field(description="Checkpoint signature encoded as unpadded Base64URL.", examples=["K7vQnUi9x5xJjK0KruPz3XFGVyw4Hn8lF0GZwp5nVxFA3x7TQ9kZgD0tUnqLUc7G_BFQxw3V7v7aDzc9t5LjCg"])
++    first_seq: int = Field(description="Primeira sequência do ledger incluída no checkpoint.", examples=[1])
++    last_seq: int = Field(description="Última sequência do ledger incluída no checkpoint.", examples=[128])
++    root_hash: str = Field(description="Hash do último evento da cadeia append-only coberta.", examples=["6fb9c64085cbd1e2234916f2ab6ad37c3de9a9d2c731e6052ee742c67358ee2a"])
++    policy_version: str = Field(description="Versão de política vinculada ao checkpoint assinado.", examples=["liberrotas-policy-1"])
++    checkpoint_id: str = Field(description="UUID do checkpoint.", examples=["574cfa87-0c9b-4f0c-9ee0-719ee5c06f80"])
++    signature_b64u: str = Field(description="Assinatura do checkpoint codificada em Base64URL sem preenchimento.", examples=["K7vQnUi9x5xJjK0KruPz3XFGVyw4Hn8lF0GZwp5nVxFA3x7TQ9kZgD0tUnqLUc7G_BFQxw3V7v7aDzc9t5LjCg"])
+ 
+     model_config = ConfigDict(
+         json_schema_extra={
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/service.py trq_buckles/src/trq_bec/server/service.py
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/src/trq_bec/server/service.py	2026-07-11 01:14:53.000000000 +0000
++++ trq_buckles/src/trq_bec/server/service.py	2026-07-12 01:23:58.792831298 +0000
+@@ -438,4 +438,7 @@
+     def checkpoint(self, principal: Principal) -> dict[str, Any]:
+         if not principal.is_admin:
+             raise ServiceError("ADMIN_CLAIM_REQUIRED", 403)
+-        return self.store.create_checkpoint(self.settings.checkpoint_key_id, self.settings.policy_version)
++        try:
++            return self.store.create_checkpoint(self.settings.checkpoint_key_id, self.settings.policy_version)
++        except LedgerError as exc:
++            raise ServiceError(str(exc), 409) from exc
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=*.egg-info' '--exclude=.pytest_cache' trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/tests/test_server_api.py trq_buckles/tests/test_server_api.py
+--- trq_work/LiberRotas_TRQ_BEC_Workspace_v3/backend_trq_bec/tests/test_server_api.py	2026-07-12 00:52:55.303417331 +0000
++++ trq_buckles/tests/test_server_api.py	2026-07-12 01:25:27.424120337 +0000
+@@ -26,9 +26,13 @@
+ 
+ class StaticAuthenticator:
+     def verify(self, bearer_token: str) -> Principal:
+-        roles = {"entre-token": ("entre-uid", "entrepreneur"), "visit-token": ("visit-uid", "visitor")}
+-        uid, role = roles[bearer_token]
+-        return Principal(uid, role, f"{uid}@example.test", {"role": role})
++        identities = {
++            "entre-token": ("entre-uid", "entrepreneur", {"role": "entrepreneur"}),
++            "visit-token": ("visit-uid", "visitor", {"role": "visitor"}),
++            "admin-token": ("admin-uid", "admin", {"role": "admin", "admin": True}),
++        }
++        uid, role, claims = identities[bearer_token]
++        return Principal(uid, role, f"{uid}@example.test", claims)
+ 
+ 
+ class ServerApiTests(unittest.TestCase):
+@@ -207,12 +211,13 @@
+         self.assertTrue(response.json()["database"])
+         self.assertFalse(response.json()["pqc_ready"])
+ 
+-    def test_openapi_contract_is_grouped_and_secured(self) -> None:
++    def test_openapi_contract_is_grouped_secured_and_public_only(self) -> None:
+         schema = self.client.get("/openapi.json").json()
+         self.assertEqual(
+             [tag["name"] for tag in schema["tags"]],
+-            ["Saúde e prontidão", "Dispositivos", "Cupons", "Resgate", "Operações internas"],
++            ["Saúde e prontidão", "Dispositivos", "Cupons", "Resgate"],
+         )
++        self.assertNotIn("/internal/v1/ledger/checkpoint", schema["paths"])
+         security_scheme = schema["components"]["securitySchemes"]["FirebaseIDToken"]
+         self.assertEqual(security_scheme["type"], "http")
+         self.assertEqual(security_scheme["scheme"], "bearer")
+@@ -221,6 +226,55 @@
+         self.assertIn("503", issue["responses"])
+         self.assertNotIn("security", schema["paths"]["/health/"]["get"])
+ 
++
++    def test_internal_openapi_is_isolated_from_public_contract(self) -> None:
++        schema = self.client.get("/internal/openapi.json").json()
++        self.assertEqual([tag["name"] for tag in schema["tags"]], ["Operações internas"])
++        self.assertEqual(set(schema["paths"]), {"/internal/v1/ledger/checkpoint"})
++        checkpoint = schema["paths"]["/internal/v1/ledger/checkpoint"]["post"]
++        self.assertEqual(checkpoint["security"], [{"FirebaseIDToken": []}])
++        forbidden_examples = checkpoint["responses"]["403"]["content"]["application/json"]["examples"]
++        self.assertEqual(
++            forbidden_examples["claimAdmin"]["value"]["code"],
++            "ADMIN_CLAIM_REQUIRED",
++        )
++
++    def test_error_examples_match_each_route(self) -> None:
++        schema = self.client.get("/openapi.json").json()
++        begin = schema["paths"]["/v1/trq-bec/coupons/redeem/begin"]["post"]
++        bad_request_examples = begin["responses"]["400"]["content"]["application/json"]["examples"]
++        self.assertEqual(
++            {example["value"]["code"] for example in bad_request_examples.values()},
++            {"QR_BINDING_MISMATCH", "TOKEN_CRYPTO_INVALID"},
++        )
++        issue = schema["paths"]["/v1/trq-bec/coupons/issue"]["post"]
++        not_found_examples = issue["responses"]["404"]["content"]["application/json"]["examples"]
++        self.assertEqual(
++            not_found_examples["cupomIndisponivel"]["value"]["code"],
++            "COUPON_NOT_ACTIVE_OR_NOT_OWNED",
++        )
++        authorize = schema["paths"]["/v1/trq-bec/coupons/redeem/authorize"]["post"]
++        unavailable_examples = authorize["responses"]["503"]["content"]["application/json"]["examples"]
++        self.assertEqual(
++            unavailable_examples["replayIndisponivel"]["value"]["code"],
++            "REPLAY_STORE_UNAVAILABLE",
++        )
++
++    def test_empty_ledger_checkpoint_matches_documented_conflict(self) -> None:
++        response = self.client.post(
++            "/internal/v1/ledger/checkpoint",
++            headers=self.headers("admin-token"),
++        )
++        self.assertEqual(response.status_code, 409)
++        self.assertEqual(response.json(), {"code": "LEDGER_EMPTY", "message": "LEDGER_EMPTY"})
++
++    def test_public_schema_descriptions_are_in_portuguese(self) -> None:
++        schema = self.client.get("/openapi.json").json()
++        api_error = schema["components"]["schemas"]["ApiErrorResponse"]
++        self.assertIn("Código de motivo", api_error["properties"]["code"]["description"])
++        enroll = schema["components"]["schemas"]["EnrollDeviceRequest"]
++        self.assertIn("Identificador estável", enroll["properties"]["device_key_id"]["description"])
++
+     def test_missing_bearer_has_stable_error_contract(self) -> None:
+         response = self.client.post(
+             "/v1/trq-bec/devices/enroll",

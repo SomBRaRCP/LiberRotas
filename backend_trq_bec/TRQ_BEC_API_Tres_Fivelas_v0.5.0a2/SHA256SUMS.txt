@@ -1,0 +1,17 @@
+ebadfa92c9196eaae2cca1fcdac90aede442227f041bc7a3edff3b6eced00ecf  ./APLICAR_ATUALIZACAO.ps1
+497e36fb53bd7d2f01cc427ae53fea31093997cd4877239bec277afef8b2b79b  ./LEIA-ME.md
+dfe0bbc9d0cb3d6c06247bf4a2a5846650643a7d0e37100aa6bb00decb893ae6  ./TRQ_BEC_API_Tres_Fivelas_v0.5.0a2.patch
+3911df7abbce072c5c90913bbc31c73e6ccbd7790e6702917322a6487bc8fa8a  ./payload/README.md
+627589c7b69cacf8c27b27ed9843e0735b8e329c5fe80c589ddc7fcd1d62907e  ./payload/docs/API_REFERENCE.md
+de90ae79649a6ac4cc17e74a61d4ac8259770f582a753d83c4cc7598f78b6feb  ./payload/docs/BACKEND_DEPLOYMENT.md
+3a5bbd081e1468f63ffc028625d4236ecd0ddd6434d4b9f8bccca7c4903123a3  ./payload/docs/openapi-liberrotas-internal-v0.5.0a2.json
+6e93b54441481e8eeb369b8eff0e58147c9c9fb36c86420aceb7243933aa563e  ./payload/docs/openapi-liberrotas-public-v0.5.0a2.json
+76e1c4aed0bb74c6b73f134027401048477af022f5bf0c9ee8685e1cb4390a59  ./payload/pyproject.toml
+6e1d86024dad2943a4e6d6c3214d5e8d3e9131d1ea14e2e2723ba4424de59137  ./payload/src/trq_bec/__init__.py
+42f2f42d075f4b2ab070e93a0b8ad23d98ed421722c30cd52f795cccb70a0e65  ./payload/src/trq_bec/server/app.py
+d90bab9b0e07814377c175350eb3e39cf20008da7ce714ec2ff774fbb47a3cb0  ./payload/src/trq_bec/server/auth.py
+d4057e0595f815da937ed47fe2f2b7034127c45a90239dfae21c92facce3b4bf  ./payload/src/trq_bec/server/docs.py
+14d40ab90b384ec7c5bf1e4a909d269db0accd185d5db83ac174768824dbb4e2  ./payload/src/trq_bec/server/export_openapi.py
+e44c659ea344e8e41a6a554ddfeb917af01a0ccd666720fe935ac4b8f99838cf  ./payload/src/trq_bec/server/models.py
+6fb570d07f83e0b2dee0b24d8e50c86763ca1c16d080be9eed4392ef05b63523  ./payload/src/trq_bec/server/service.py
+32518fc688874dddbb59123ba697b904518423a12c4dce130d534e4be6d8e385  ./payload/tests/test_server_api.py

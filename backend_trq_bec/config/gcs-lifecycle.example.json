@@ -1,0 +1,16 @@
+{
+  "rule": [
+    {
+      "action": {
+        "type": "Delete"
+      },
+      "condition": {
+        "age": 2,
+        "matchesPrefix": [
+          "pending/",
+          "quarantine/"
+        ]
+      }
+    }
+  ]
+}

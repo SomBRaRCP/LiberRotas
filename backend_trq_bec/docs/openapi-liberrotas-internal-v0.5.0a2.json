@@ -1,0 +1,244 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TRQ-BEC LiberRotas API — Contrato administrativo",
+    "summary": "Operações administrativas de integridade do ledger.",
+    "description": "## Contrato administrativo da TRQ-BEC\n\nEste contrato é destinado exclusivamente a operadores autorizados da infraestrutura\nLiberRotas. As rotas administrativas exigem **Firebase ID token** com a custom claim\n`admin=true`.\n\n### Separação de contratos\n\nAs operações internas não aparecem no OpenAPI público, no Swagger público nem na\nReDoc pública. Esta documentação administrativa também permanece desativada em\nambiente de produção.\n\n### Integridade do ledger\n\nO checkpoint cobre a cadeia append-only atual, vincula a versão de política ao hash\nraiz e produz uma assinatura verificável com a chave administrativa de checkpoint.",
+    "contact": {
+      "name": "Equipe TRQ-BEC / LiberRotas"
+    },
+    "version": "0.5.0a2"
+  },
+  "paths": {
+    "/internal/v1/ledger/checkpoint": {
+      "post": {
+        "tags": [
+          "Operações internas"
+        ],
+        "summary": "Criar um checkpoint assinado do ledger",
+        "description": "Operação administrativa que cobre a cadeia append-only atual, vincula a versão de política e assina o hash raiz com a chave de checkpoint. Exige custom claim `admin=true`.",
+        "operationId": "createLedgerCheckpoint",
+        "responses": {
+          "200": {
+            "description": "Checkpoint persistido e assinado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LedgerCheckpointResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "examples": {
+                  "bearerAusente": {
+                    "summary": "Cabeçalho Bearer ausente",
+                    "value": {
+                      "code": "AUTH_BEARER_REQUIRED",
+                      "message": "AUTH_BEARER_REQUIRED"
+                    }
+                  },
+                  "bearerInvalido": {
+                    "summary": "Cabeçalho Bearer inválido",
+                    "value": {
+                      "code": "AUTH_BEARER_INVALID",
+                      "message": "AUTH_BEARER_INVALID"
+                    }
+                  },
+                  "tokenInvalido": {
+                    "summary": "Firebase ID token inválido",
+                    "value": {
+                      "code": "AUTH_TOKEN_INVALID",
+                      "message": "AUTH_TOKEN_INVALID"
+                    }
+                  },
+                  "sujeitoInvalido": {
+                    "summary": "Sujeito do token inválido",
+                    "value": {
+                      "code": "AUTH_SUBJECT_INVALID",
+                      "message": "AUTH_SUBJECT_INVALID"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Identidade autenticada sem a custom claim administrativa obrigatória.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "examples": {
+                  "claimAdmin": {
+                    "summary": "Custom claim admin=true ausente",
+                    "value": {
+                      "code": "ADMIN_CLAIM_REQUIRED",
+                      "message": "ADMIN_CLAIM_REQUIRED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ledger vazio ou estado incompatível com a criação de checkpoint.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "examples": {
+                  "ledgerVazio": {
+                    "summary": "Não existem eventos para cobrir",
+                    "value": {
+                      "code": "LEDGER_EMPTY",
+                      "message": "LEDGER_EMPTY"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "FirebaseIDToken": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiErrorResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Código de motivo legível por máquina.",
+            "examples": [
+              "AUTH_TOKEN_INVALID"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Mensagem de erro legível por pessoa ou operador.",
+            "examples": [
+              "AUTH_TOKEN_INVALID"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ApiErrorResponse",
+        "description": "Envelope estável de erro retornado nas fronteiras de autenticação e serviço.",
+        "examples": [
+          {
+            "code": "AUTH_TOKEN_INVALID",
+            "message": "AUTH_TOKEN_INVALID"
+          }
+        ]
+      },
+      "LedgerCheckpointResponse": {
+        "properties": {
+          "first_seq": {
+            "type": "integer",
+            "title": "First Seq",
+            "description": "Primeira sequência do ledger incluída no checkpoint.",
+            "examples": [
+              1
+            ]
+          },
+          "last_seq": {
+            "type": "integer",
+            "title": "Last Seq",
+            "description": "Última sequência do ledger incluída no checkpoint.",
+            "examples": [
+              128
+            ]
+          },
+          "root_hash": {
+            "type": "string",
+            "title": "Root Hash",
+            "description": "Hash do último evento da cadeia append-only coberta.",
+            "examples": [
+              "6fb9c64085cbd1e2234916f2ab6ad37c3de9a9d2c731e6052ee742c67358ee2a"
+            ]
+          },
+          "policy_version": {
+            "type": "string",
+            "title": "Policy Version",
+            "description": "Versão de política vinculada ao checkpoint assinado.",
+            "examples": [
+              "liberrotas-policy-1"
+            ]
+          },
+          "checkpoint_id": {
+            "type": "string",
+            "title": "Checkpoint Id",
+            "description": "UUID do checkpoint.",
+            "examples": [
+              "574cfa87-0c9b-4f0c-9ee0-719ee5c06f80"
+            ]
+          },
+          "signature_b64u": {
+            "type": "string",
+            "title": "Signature B64U",
+            "description": "Assinatura do checkpoint codificada em Base64URL sem preenchimento.",
+            "examples": [
+              "K7vQnUi9x5xJjK0KruPz3XFGVyw4Hn8lF0GZwp5nVxFA3x7TQ9kZgD0tUnqLUc7G_BFQxw3V7v7aDzc9t5LjCg"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "first_seq",
+          "last_seq",
+          "root_hash",
+          "policy_version",
+          "checkpoint_id",
+          "signature_b64u"
+        ],
+        "title": "LedgerCheckpointResponse",
+        "examples": [
+          {
+            "checkpoint_id": "574cfa87-0c9b-4f0c-9ee0-719ee5c06f80",
+            "first_seq": 1,
+            "last_seq": 128,
+            "policy_version": "liberrotas-policy-1",
+            "root_hash": "6fb9c64085cbd1e2234916f2ab6ad37c3de9a9d2c731e6052ee742c67358ee2a",
+            "signature_b64u": "K7vQnUi9x5xJjK0KruPz3XFGVyw4Hn8lF0GZwp5nVxFA3x7TQ9kZgD0tUnqLUc7G_BFQxw3V7v7aDzc9t5LjCg"
+          }
+        ]
+      }
+    },
+    "securitySchemes": {
+      "FirebaseIDToken": {
+        "type": "http",
+        "description": "Firebase ID token emitido para o usuário autenticado do LiberRotas. Cole somente o valor do token; a Swagger UI acrescenta o prefixo `Bearer` automaticamente.",
+        "scheme": "bearer",
+        "bearerFormat": "Firebase ID token (JWT)"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Operações internas",
+      "description": "Rotas administrativas para integridade do ledger. Exigem custom claim `admin=true` e não integram o contrato público do aplicativo."
+    }
+  ]
+}

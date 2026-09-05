@@ -1,0 +1,1396 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TRQ-BEC LiberRotas API",
+    "summary": "Fronteira autoritativa de segurança para emissão e resgate de cupons.",
+    "description": "## Fronteira de segurança do LiberRotas\n\nA **TRQ-BEC LiberRotas API** é a camada autoritativa para cadastro de dispositivos,\nemissão de cupons, resgate com prova de posse e registro de evidências no ledger.\n\n### Autenticação\n\nAs operações protegidas exigem um **Firebase ID token** no esquema HTTP Bearer.\nNo botão **Authorize**, cole somente o token — a interface acrescenta `Bearer` automaticamente.\n\n### Regra criptográfica\n\nA decisão é *fail-closed*: se a verificação criptográfica não estiver íntegra,\na autorização não produz `ALLOW`. O estado do provider pode ser consultado em\n`GET /health/crypto`.\n\n### Estado desta versão\n\nA versão `0.5.0-alpha.1` mantém Ed25519 apenas como perfil de laboratório.\nML-KEM-768 e ML-DSA-65 permanecem bloqueados até a integração de um provider\nauditado e aprovado.",
+    "contact": {
+      "name": "Equipe TRQ-BEC / LiberRotas"
+    },
+    "version": "0.5.0a1"
+  },
+  "paths": {
+    "/health/": {
+      "get": {
+        "tags": [
+          "Saúde e prontidão"
+        ],
+        "summary": "Verificar a saúde da infraestrutura",
+        "description": "Confirma conectividade com PostgreSQL e Redis e informa se a camada criptográfica pós-quântica está pronta. Endpoint público para probes de operação.",
+        "operationId": "getInfrastructureHealth",
+        "responses": {
+          "200": {
+            "description": "Estado consolidado da infraestrutura.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/crypto": {
+      "get": {
+        "tags": [
+          "Saúde e prontidão"
+        ],
+        "summary": "Verificar o provider criptográfico",
+        "description": "Expõe a identidade, aprovação, self-test e suporte algorítmico do provider. `ready=false` mantém os fluxos pós-quânticos bloqueados por construção.",
+        "operationId": "getCryptoProviderHealth",
+        "responses": {
+          "200": {
+            "description": "Estado detalhado do provider criptográfico.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CryptoHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/trq-bec/devices/enroll": {
+      "post": {
+        "tags": [
+          "Dispositivos"
+        ],
+        "summary": "Cadastrar uma chave de dispositivo",
+        "description": "Vincula a chave pública do dispositivo ao sujeito autenticado pelo Firebase. O cadastro é idempotente para a mesma identidade e falha com conflito quando há tentativa de reatribuição.",
+        "operationId": "enrollDevice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollDeviceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Dispositivo cadastrado ou já cadastrado para o mesmo sujeito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollDeviceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "AUTH_TOKEN_INVALID",
+                  "message": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Identidade autenticada, porém sem claim, vínculo ou permissão necessária.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "ENTREPRENEUR_CLAIM_REQUIRED",
+                  "message": "ENTREPRENEUR_CLAIM_REQUIRED"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflito de vínculo, repetição, token já utilizado ou operação já concluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "TOKEN_NOT_REDEEMABLE",
+                  "message": "TOKEN_NOT_REDEEMABLE"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "FirebaseIDToken": []
+          }
+        ]
+      }
+    },
+    "/v1/trq-bec/coupons/issue": {
+      "post": {
+        "tags": [
+          "Cupons"
+        ],
+        "summary": "Emitir um cupom protegido",
+        "description": "Emite o envelope e o payload compacto de QR para um cupom ativo pertencente ao empreendedor. Exige claim `role=entrepreneur`, vínculo entre `issuer_id` e o Firebase UID e dispositivo previamente cadastrado.",
+        "operationId": "issueCoupon",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueCouponRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Payload compacto para QR e prazo de validade do envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueCouponResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "AUTH_TOKEN_INVALID",
+                  "message": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Identidade autenticada, porém sem claim, vínculo ou permissão necessária.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "ENTREPRENEUR_CLAIM_REQUIRED",
+                  "message": "ENTREPRENEUR_CLAIM_REQUIRED"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cupom inexistente, inativo ou não pertencente ao emissor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflito de vínculo, repetição, token já utilizado ou operação já concluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "TOKEN_NOT_REDEEMABLE",
+                  "message": "TOKEN_NOT_REDEEMABLE"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependência crítica ou provider criptográfico indisponível. A operação falha fechada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "PQC_PROVIDER_NOT_READY",
+                  "message": "PQC_PROVIDER_NOT_READY"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "FirebaseIDToken": []
+          }
+        ]
+      }
+    },
+    "/v1/trq-bec/coupons/redeem/begin": {
+      "post": {
+        "tags": [
+          "Resgate"
+        ],
+        "summary": "Iniciar o resgate e emitir um desafio",
+        "description": "Valida o vínculo do QR, o estado do token e o dispositivo do visitante. Cria uma operação, uma sessão e um desafio de uso único, retornando a mensagem exata que deverá ser assinada no dispositivo.",
+        "operationId": "beginCouponRedemption",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BeginRedemptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Operação pendente, desafio de frescor e mensagem para prova de posse.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BeginRedemptionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "AUTH_TOKEN_INVALID",
+                  "message": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Identidade autenticada, porém sem claim, vínculo ou permissão necessária.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "ENTREPRENEUR_CLAIM_REQUIRED",
+                  "message": "ENTREPRENEUR_CLAIM_REQUIRED"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "QR inválido ou vínculo criptográfico inconsistente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Referência de token desconhecida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Token expirado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflito de vínculo, repetição, token já utilizado ou operação já concluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "TOKEN_NOT_REDEEMABLE",
+                  "message": "TOKEN_NOT_REDEEMABLE"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "FirebaseIDToken": []
+          }
+        ]
+      }
+    },
+    "/v1/trq-bec/coupons/redeem/authorize": {
+      "post": {
+        "tags": [
+          "Resgate"
+        ],
+        "summary": "Autorizar o resgate mediante prova de posse",
+        "description": "Consome o desafio de uso único, valida a assinatura do dispositivo, reserva replay de forma distribuída, executa os gates criptográficos e aplica a política determinística. Repetições da mesma operação são idempotentes.",
+        "operationId": "authorizeCouponRedemption",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizeRedemptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Decisão autoritativa e referência de evidência no ledger.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "AUTH_TOKEN_INVALID",
+                  "message": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Identidade autenticada, porém sem claim, vínculo ou permissão necessária.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "ENTREPRENEUR_CLAIM_REQUIRED",
+                  "message": "ENTREPRENEUR_CLAIM_REQUIRED"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operação de resgate desconhecida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependência crítica ou provider criptográfico indisponível. A operação falha fechada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "PQC_PROVIDER_NOT_READY",
+                  "message": "PQC_PROVIDER_NOT_READY"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "FirebaseIDToken": []
+          }
+        ]
+      }
+    },
+    "/internal/v1/ledger/checkpoint": {
+      "post": {
+        "tags": [
+          "Operações internas"
+        ],
+        "summary": "Criar um checkpoint assinado do ledger",
+        "description": "Operação administrativa que cobre a cadeia append-only atual, vincula a versão de política e assina o hash raiz com a chave de checkpoint. Exige custom claim `admin=true`.",
+        "operationId": "createLedgerCheckpoint",
+        "responses": {
+          "200": {
+            "description": "Checkpoint persistido e assinado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LedgerCheckpointResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "AUTH_TOKEN_INVALID",
+                  "message": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Identidade autenticada, porém sem claim, vínculo ou permissão necessária.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "code": "ENTREPRENEUR_CLAIM_REQUIRED",
+                  "message": "ENTREPRENEUR_CLAIM_REQUIRED"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ledger vazio ou estado incompatível com checkpoint.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "FirebaseIDToken": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiErrorResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Machine-readable reason code.",
+            "examples": [
+              "AUTH_TOKEN_INVALID"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human- or operator-readable error message.",
+            "examples": [
+              "AUTH_TOKEN_INVALID"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ApiErrorResponse",
+        "description": "Stable error envelope returned by authentication and service boundaries.",
+        "examples": [
+          {
+            "code": "AUTH_TOKEN_INVALID",
+            "message": "AUTH_TOKEN_INVALID"
+          }
+        ]
+      },
+      "AuthorizationResponse": {
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "DENY",
+              "ALLOW",
+              "STEP_UP",
+              "HOLD_OR_REVIEW"
+            ],
+            "title": "Decision",
+            "description": "Deterministic authorization decision."
+          },
+          "operation_id": {
+            "type": "string",
+            "title": "Operation Id",
+            "description": "Redemption operation identifier."
+          },
+          "crypto_ok": {
+            "type": "boolean",
+            "title": "Crypto Ok",
+            "description": "Whether all mandatory cryptographic gates passed."
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reason Codes",
+            "description": "Machine-readable reasons supporting the decision."
+          },
+          "coupon_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coupon Id",
+            "description": "Coupon released only when policy permits disclosure."
+          },
+          "event_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Ref",
+            "description": "Append-only ledger event reference."
+          },
+          "idempotent": {
+            "type": "boolean",
+            "title": "Idempotent",
+            "description": "True when this is a safe replay of an already completed operation.",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "decision",
+          "operation_id",
+          "crypto_ok",
+          "reason_codes"
+        ],
+        "title": "AuthorizationResponse",
+        "examples": [
+          {
+            "coupon_id": "FEITUR-021",
+            "crypto_ok": true,
+            "decision": "ALLOW",
+            "event_ref": "event:36cc48bf-908f-4b90-b91e-57951a97be10",
+            "idempotent": false,
+            "operation_id": "op:eea2915b-8783-4c98-9766-39df9c5fcf2e",
+            "reason_codes": []
+          }
+        ]
+      },
+      "AuthorizeRedemptionRequest": {
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 8,
+            "title": "Operation Id",
+            "description": "Operation identifier returned by the begin step.",
+            "examples": [
+              "op:eea2915b-8783-4c98-9766-39df9c5fcf2e"
+            ]
+          },
+          "session_id": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 8,
+            "title": "Session Id",
+            "description": "Session identifier returned by the begin step.",
+            "examples": [
+              "session:9d9f36e2-69ac-433d-a168-e4a4af1365ac"
+            ]
+          },
+          "challenge_id": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 16,
+            "title": "Challenge Id",
+            "description": "Single-use challenge identifier returned by the begin step.",
+            "examples": [
+              "challenge:8d74f40a-70f0-4aa1-ae42-ef6749b6020e"
+            ]
+          },
+          "device_key_id": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 12,
+            "title": "Device Key Id",
+            "description": "Redeemer device key bound to the operation.",
+            "examples": [
+              "device:expo:visitante:01"
+            ]
+          },
+          "device_proof_b64u": {
+            "type": "string",
+            "maxLength": 88,
+            "minLength": 86,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Device Proof B64U",
+            "description": "Ed25519 signature over `proof_message_b64u`, encoded as unpadded Base64URL.",
+            "examples": [
+              "9gAbmslLvGHuEFDf8h39jnVSrzC-ns48Boo5yHpFtOuXJEh3tockZ39gAbmslLvGHuEFDf8h39jnVSrzC-ns48"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "operation_id",
+          "session_id",
+          "challenge_id",
+          "device_key_id",
+          "device_proof_b64u"
+        ],
+        "title": "AuthorizeRedemptionRequest",
+        "examples": [
+          {
+            "challenge_id": "challenge:8d74f40a-70f0-4aa1-ae42-ef6749b6020e",
+            "device_key_id": "device:expo:visitante:01",
+            "device_proof_b64u": "9gAbmslLvGHuEFDf8h39jnVSrzC-ns48Boo5yHpFtOuXJEh3tockZ39gAbmslLvGHuEFDf8h39jnVSrzC-ns48",
+            "operation_id": "op:eea2915b-8783-4c98-9766-39df9c5fcf2e",
+            "session_id": "session:9d9f36e2-69ac-433d-a168-e4a4af1365ac"
+          }
+        ]
+      },
+      "BeginRedemptionRequest": {
+        "properties": {
+          "qr_payload": {
+            "$ref": "#/components/schemas/CompactQrPayload",
+            "description": "QR payload produced by the issuance endpoint."
+          },
+          "device_key_id": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 12,
+            "title": "Device Key Id",
+            "description": "Previously enrolled redeemer device key.",
+            "examples": [
+              "device:expo:visitante:01"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "qr_payload",
+          "device_key_id"
+        ],
+        "title": "BeginRedemptionRequest",
+        "examples": [
+          {
+            "device_key_id": "device:expo:visitante:01",
+            "qr_payload": {
+              "expires_at": 1783811490,
+              "issuer_ref": "issuer:4f1c5f4a93f2",
+              "token_ref": "y2Q33r5Tgpiz7ibyWkFI9L7tt-Xah6un",
+              "type": "trq-bec-coupon-v1",
+              "v": 1
+            }
+          }
+        ]
+      },
+      "BeginRedemptionResponse": {
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "title": "Operation Id",
+            "description": "Stable identifier for the redemption operation.",
+            "examples": [
+              "op:eea2915b-8783-4c98-9766-39df9c5fcf2e"
+            ]
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id",
+            "description": "Session identifier bound to the challenge and device.",
+            "examples": [
+              "session:9d9f36e2-69ac-433d-a168-e4a4af1365ac"
+            ]
+          },
+          "challenge": {
+            "$ref": "#/components/schemas/ChallengeResponse"
+          },
+          "proof_message_b64u": {
+            "type": "string",
+            "title": "Proof Message B64U",
+            "description": "Exact message bytes, encoded as unpadded Base64URL, that the device must sign.",
+            "examples": [
+              "VFJRLUJFQy9kZXZpY2UtcHJvb2YvdjE6ZXhhbXBsZS1wcm9vZi1tZXNzYWdl"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "operation_id",
+          "session_id",
+          "challenge",
+          "proof_message_b64u"
+        ],
+        "title": "BeginRedemptionResponse",
+        "examples": [
+          {
+            "challenge": {
+              "challenge_id": "challenge:8d74f40a-70f0-4aa1-ae42-ef6749b6020e",
+              "expires_at": 1783811445
+            },
+            "operation_id": "op:eea2915b-8783-4c98-9766-39df9c5fcf2e",
+            "proof_message_b64u": "VFJRLUJFQy9kZXZpY2UtcHJvb2YvdjE6ZXhhbXBsZS1wcm9vZi1tZXNzYWdl",
+            "session_id": "session:9d9f36e2-69ac-433d-a168-e4a4af1365ac"
+          }
+        ]
+      },
+      "ChallengeResponse": {
+        "properties": {
+          "challenge_id": {
+            "type": "string",
+            "title": "Challenge Id",
+            "description": "Single-use freshness challenge identifier.",
+            "examples": [
+              "challenge:8d74f40a-70f0-4aa1-ae42-ef6749b6020e"
+            ]
+          },
+          "expires_at": {
+            "type": "integer",
+            "title": "Expires At",
+            "description": "Challenge expiration as Unix time in seconds.",
+            "examples": [
+              1783811445
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "challenge_id",
+          "expires_at"
+        ],
+        "title": "ChallengeResponse"
+      },
+      "CompactQrPayload": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "trq-bec-coupon-v1",
+            "title": "Type",
+            "description": "Discriminator for the compact coupon QR contract.",
+            "default": "trq-bec-coupon-v1"
+          },
+          "v": {
+            "type": "integer",
+            "const": 1,
+            "title": "V",
+            "description": "QR contract version.",
+            "default": 1
+          },
+          "token_ref": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 22,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Token Ref",
+            "description": "Opaque server-side token reference; the signed envelope is not exposed in the QR code.",
+            "examples": [
+              "y2Q33r5Tgpiz7ibyWkFI9L7tt-Xah6un"
+            ]
+          },
+          "issuer_ref": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Issuer Ref",
+            "description": "Pseudonymized issuer reference bound to the token.",
+            "examples": [
+              "issuer:4f1c5f4a93f2"
+            ]
+          },
+          "expires_at": {
+            "type": "integer",
+            "title": "Expires At",
+            "description": "Token expiration as Unix time in seconds.",
+            "examples": [
+              1783811490
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token_ref",
+          "issuer_ref",
+          "expires_at"
+        ],
+        "title": "CompactQrPayload",
+        "examples": [
+          {
+            "expires_at": 1783811490,
+            "issuer_ref": "issuer:4f1c5f4a93f2",
+            "token_ref": "y2Q33r5Tgpiz7ibyWkFI9L7tt-Xah6un",
+            "type": "trq-bec-coupon-v1",
+            "v": 1
+          }
+        ]
+      },
+      "CryptoHealthResponse": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider",
+            "description": "Provider implementation name.",
+            "examples": [
+              "UNAVAILABLE"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Provider implementation version.",
+            "examples": [
+              "0"
+            ]
+          },
+          "approved": {
+            "type": "boolean",
+            "title": "Approved",
+            "description": "Explicit administrative approval status.",
+            "examples": [
+              false
+            ]
+          },
+          "self_test_passed": {
+            "type": "boolean",
+            "title": "Self Test Passed",
+            "description": "Provider startup self-test result.",
+            "examples": [
+              false
+            ]
+          },
+          "ml_kem_768": {
+            "type": "boolean",
+            "title": "Ml Kem 768",
+            "description": "Availability of ML-KEM-768.",
+            "examples": [
+              false
+            ]
+          },
+          "ml_dsa_65": {
+            "type": "boolean",
+            "title": "Ml Dsa 65",
+            "description": "Availability of ML-DSA-65.",
+            "examples": [
+              false
+            ]
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready",
+            "description": "Aggregate provider readiness used by fail-closed gates.",
+            "examples": [
+              false
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "provider",
+          "version",
+          "approved",
+          "self_test_passed",
+          "ml_kem_768",
+          "ml_dsa_65",
+          "ready"
+        ],
+        "title": "CryptoHealthResponse",
+        "examples": [
+          {
+            "approved": false,
+            "ml_dsa_65": false,
+            "ml_kem_768": false,
+            "provider": "UNAVAILABLE",
+            "ready": false,
+            "self_test_passed": false,
+            "version": "0"
+          }
+        ]
+      },
+      "EnrollDeviceRequest": {
+        "properties": {
+          "device_key_id": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 12,
+            "pattern": "^device:[A-Za-z0-9:_-]+$",
+            "title": "Device Key Id",
+            "description": "Stable application identifier for the local device key.",
+            "examples": [
+              "device:expo:feirante:01"
+            ]
+          },
+          "public_key_b64u": {
+            "type": "string",
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Public Key B64U",
+            "description": "Raw Ed25519 public key encoded as unpadded Base64URL (laboratory profile).",
+            "examples": [
+              "iOZAaQkSG1nU4MV5kY_IRQAxIQ1o9S87b2m3oxygTlw"
+            ]
+          },
+          "algorithm": {
+            "type": "string",
+            "const": "ED25519_LAB",
+            "title": "Algorithm",
+            "description": "Device-proof algorithm enabled in this laboratory version."
+          },
+          "storage_profile": {
+            "type": "string",
+            "const": "EXPO_SECURE_STORE_LAB",
+            "title": "Storage Profile",
+            "description": "Expected local protection profile for the private key."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "device_key_id",
+          "public_key_b64u",
+          "algorithm",
+          "storage_profile"
+        ],
+        "title": "EnrollDeviceRequest",
+        "examples": [
+          {
+            "algorithm": "ED25519_LAB",
+            "device_key_id": "device:expo:feirante:01",
+            "public_key_b64u": "iOZAaQkSG1nU4MV5kY_IRQAxIQ1o9S87b2m3oxygTlw",
+            "storage_profile": "EXPO_SECURE_STORE_LAB"
+          }
+        ]
+      },
+      "EnrollDeviceResponse": {
+        "properties": {
+          "device_key_id": {
+            "type": "string",
+            "title": "Device Key Id",
+            "description": "Device key identifier accepted by the backend."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ENROLLED",
+              "ALREADY_ENROLLED"
+            ],
+            "title": "Status",
+            "description": "Idempotent enrollment result."
+          },
+          "key_ref": {
+            "type": "string",
+            "title": "Key Ref",
+            "description": "Pseudonymized key reference safe for audit records."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "device_key_id",
+          "status",
+          "key_ref"
+        ],
+        "title": "EnrollDeviceResponse",
+        "examples": [
+          {
+            "device_key_id": "device:expo:feirante:01",
+            "key_ref": "devref:3x6vT0ph2QmN8sYk",
+            "status": "ENROLLED"
+          }
+        ]
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status",
+            "description": "Overall infrastructure state."
+          },
+          "database": {
+            "type": "boolean",
+            "title": "Database",
+            "description": "PostgreSQL connectivity."
+          },
+          "redis": {
+            "type": "boolean",
+            "title": "Redis",
+            "description": "Redis connectivity."
+          },
+          "crypto_provider": {
+            "type": "string",
+            "title": "Crypto Provider",
+            "description": "Active provider, or explicit laboratory/PQ-blocked state."
+          },
+          "pqc_ready": {
+            "type": "boolean",
+            "title": "Pqc Ready",
+            "description": "True only when the approved PQC provider is ready and self-tested."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "database",
+          "redis",
+          "crypto_provider",
+          "pqc_ready"
+        ],
+        "title": "HealthResponse",
+        "examples": [
+          {
+            "crypto_provider": "LAB_ED25519_PQ_BLOCKED",
+            "database": true,
+            "pqc_ready": false,
+            "redis": true,
+            "status": "ok"
+          }
+        ]
+      },
+      "IssueCouponRequest": {
+        "properties": {
+          "coupon_id": {
+            "type": "string",
+            "pattern": "^FEITUR-\\d{3}$",
+            "title": "Coupon Id",
+            "description": "Business coupon identifier in the FEITUR catalogue.",
+            "examples": [
+              "FEITUR-021"
+            ]
+          },
+          "issuer_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Issuer Id",
+            "description": "Firebase UID of the authenticated entrepreneur. Must match the token subject.",
+            "examples": [
+              "firebase-uid-feirante-001"
+            ]
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "City",
+            "description": "City context bound to the coupon intent.",
+            "examples": [
+              "Pinhais - PR"
+            ]
+          },
+          "device_key_id": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 12,
+            "title": "Device Key Id",
+            "description": "Previously enrolled issuer device key.",
+            "examples": [
+              "device:expo:feirante:01"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "coupon_id",
+          "issuer_id",
+          "city",
+          "device_key_id"
+        ],
+        "title": "IssueCouponRequest",
+        "examples": [
+          {
+            "city": "Pinhais - PR",
+            "coupon_id": "FEITUR-021",
+            "device_key_id": "device:expo:feirante:01",
+            "issuer_id": "firebase-uid-feirante-001"
+          }
+        ]
+      },
+      "IssueCouponResponse": {
+        "properties": {
+          "qr_payload": {
+            "$ref": "#/components/schemas/CompactQrPayload",
+            "description": "Compact payload to encode in the coupon QR code."
+          },
+          "expires_at": {
+            "type": "integer",
+            "title": "Expires At",
+            "description": "Envelope expiration as Unix time in seconds.",
+            "examples": [
+              1783811490
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "qr_payload",
+          "expires_at"
+        ],
+        "title": "IssueCouponResponse",
+        "examples": [
+          {
+            "expires_at": 1783811490,
+            "qr_payload": {
+              "expires_at": 1783811490,
+              "issuer_ref": "issuer:4f1c5f4a93f2",
+              "token_ref": "y2Q33r5Tgpiz7ibyWkFI9L7tt-Xah6un",
+              "type": "trq-bec-coupon-v1",
+              "v": 1
+            }
+          }
+        ]
+      },
+      "LedgerCheckpointResponse": {
+        "properties": {
+          "first_seq": {
+            "type": "integer",
+            "title": "First Seq",
+            "description": "First ledger sequence included in the checkpoint.",
+            "examples": [
+              1
+            ]
+          },
+          "last_seq": {
+            "type": "integer",
+            "title": "Last Seq",
+            "description": "Last ledger sequence included in the checkpoint.",
+            "examples": [
+              128
+            ]
+          },
+          "root_hash": {
+            "type": "string",
+            "title": "Root Hash",
+            "description": "Hash of the last event in the covered append-only chain.",
+            "examples": [
+              "6fb9c64085cbd1e2234916f2ab6ad37c3de9a9d2c731e6052ee742c67358ee2a"
+            ]
+          },
+          "policy_version": {
+            "type": "string",
+            "title": "Policy Version",
+            "description": "Policy version bound to the signed checkpoint.",
+            "examples": [
+              "liberrotas-policy-1"
+            ]
+          },
+          "checkpoint_id": {
+            "type": "string",
+            "title": "Checkpoint Id",
+            "description": "Checkpoint UUID.",
+            "examples": [
+              "574cfa87-0c9b-4f0c-9ee0-719ee5c06f80"
+            ]
+          },
+          "signature_b64u": {
+            "type": "string",
+            "title": "Signature B64U",
+            "description": "Checkpoint signature encoded as unpadded Base64URL.",
+            "examples": [
+              "K7vQnUi9x5xJjK0KruPz3XFGVyw4Hn8lF0GZwp5nVxFA3x7TQ9kZgD0tUnqLUc7G_BFQxw3V7v7aDzc9t5LjCg"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "first_seq",
+          "last_seq",
+          "root_hash",
+          "policy_version",
+          "checkpoint_id",
+          "signature_b64u"
+        ],
+        "title": "LedgerCheckpointResponse",
+        "examples": [
+          {
+            "checkpoint_id": "574cfa87-0c9b-4f0c-9ee0-719ee5c06f80",
+            "first_seq": 1,
+            "last_seq": 128,
+            "policy_version": "liberrotas-policy-1",
+            "root_hash": "6fb9c64085cbd1e2234916f2ab6ad37c3de9a9d2c731e6052ee742c67358ee2a",
+            "signature_b64u": "K7vQnUi9x5xJjK0KruPz3XFGVyw4Hn8lF0GZwp5nVxFA3x7TQ9kZgD0tUnqLUc7G_BFQxw3V7v7aDzc9t5LjCg"
+          }
+        ]
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "FirebaseIDToken": {
+        "type": "http",
+        "description": "Firebase ID token issued to the authenticated LiberRotas user. Paste only the token value; Swagger UI adds the `Bearer` prefix automatically.",
+        "scheme": "bearer",
+        "bearerFormat": "Firebase ID token (JWT)"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Saúde e prontidão",
+      "description": "Diagnósticos sem autenticação para disponibilidade do banco, Redis e provider criptográfico. Não representam autorização de negócio."
+    },
+    {
+      "name": "Dispositivos",
+      "description": "Cadastro e vinculação de chaves públicas de dispositivo ao sujeito autenticado pelo Firebase."
+    },
+    {
+      "name": "Cupons",
+      "description": "Emissão autoritativa de cupons por contas empreendedoras, com vínculo de identidade, dispositivo e política."
+    },
+    {
+      "name": "Resgate",
+      "description": "Fluxo em duas etapas: criação de desafio de uso único e autorização mediante prova de posse da chave."
+    },
+    {
+      "name": "Operações internas",
+      "description": "Rotas administrativas para integridade do ledger. Exigem custom claim `admin=true` e não integram o contrato público do aplicativo."
+    }
+  ]
+}

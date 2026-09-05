@@ -1,0 +1,36 @@
+.git
+.gitignore
+.expo
+.expo-shared
+node_modules
+dist
+web-build
+coverage
+*.log
+*.tsbuildinfo
+
+# Nenhum arquivo de ambiente ou segredo pode entrar no contexto de build.
+.env
+.env.*
+secrets
+**/secrets
+firebase-service-account.json
+**/firebase-service-account.json
+firebase-service-account*.json
+**/firebase-service-account*.json
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.keystore
+
+# Arquivos locais e artefatos que nao participam do build web.
+.vscode
+.idea
+android
+ios
+archive
+backups
+*.zip
+*.tar.gz

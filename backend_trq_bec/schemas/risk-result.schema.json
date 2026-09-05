@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trq-bec.local/schemas/risk-result.v1.json",
+  "title": "TRQ-BEC RiskResult v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "score_kind", "risk_bps", "coverage_bps", "quality_bps", "reason_codes", "detector_version", "evidence_refs"],
+  "properties": {
+    "event_id": {"type": "string"},
+    "score_kind": {"enum": ["HEURISTIC_INDEX", "CALIBRATED_PROBABILITY"]},
+    "risk_bps": {"type": "integer", "minimum": 0, "maximum": 10000},
+    "coverage_bps": {"type": "integer", "minimum": 0, "maximum": 10000},
+    "quality_bps": {"type": "integer", "minimum": 0, "maximum": 10000},
+    "reason_codes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "detector_version": {"type": "string"},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  }
+}
+
