@@ -2,6 +2,7 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "types": ["node"],
     "paths": {
       "@/*": [
         "./src/*"
@@ -13,6 +14,7 @@
   },
   "include": [
     "**/*.ts",
+    "**/*.mts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"

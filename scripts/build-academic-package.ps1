@@ -450,7 +450,14 @@ Invoke-LoggedCommand -Command $NodeCommand -Arguments @(
 
 $rootFiles = @(
     ".gitignore",
+    "LiberRotas.code-workspace",
+    "INICIAR_LIBERROTAS.ps1",
+    "PARAR_LIBERROTAS.ps1",
+    "STATUS_LIBERROTAS.ps1",
+    "BACKUP_BANCO.ps1",
+    "MAPA_DE_COMANDOS.md",
     "README.md",
+    "scripts\proteger-ambiente-local.ps1",
     "scripts\build-academic-package.ps1"
 )
 $rootTrees = @(
@@ -498,13 +505,16 @@ $mobileFiles = @(
     "mobile_app\package.json",
     "mobile_app\package-lock.json",
     "mobile_app\README.md",
+    "mobile_app\BUILD_MOBILE.md",
     "mobile_app\TRQ_BEC_INTEGRATION.md",
     "mobile_app\tsconfig.json",
+    "mobile_app\vitest.config.mts",
     "mobile_app\VALIDACAO_TRQ_BEC.md",
     "mobile_app\WEB_DEPLOYMENT.md"
 )
 $mobileTrees = @(
     "mobile_app\assets",
+    "mobile_app\scripts",
     "mobile_app\src",
     "mobile_app\tests"
 )

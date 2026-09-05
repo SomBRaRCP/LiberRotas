@@ -57,13 +57,25 @@
       "problemMatcher": "$tsc"
     },
     {
+      "label": "LiberRotas: Firestore - regras no emulador",
+      "type": "process",
+      "command": "npm.cmd",
+      "args": ["run", "test:firestore"],
+      "options": {
+        "cwd": "${workspaceFolder}\\mobile_app"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
       "label": "LiberRotas: validacao completa",
       "dependsOrder": "sequence",
       "dependsOn": [
         "LiberRotas: backend - testes",
         "LiberRotas: mobile - TypeScript",
         "LiberRotas: mobile - lint",
-        "LiberRotas: mobile - testes"
+        "LiberRotas: mobile - testes",
+        "LiberRotas: Firestore - regras no emulador"
       ],
       "group": {
         "kind": "test",

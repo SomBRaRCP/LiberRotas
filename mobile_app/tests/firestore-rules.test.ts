@@ -10,7 +10,6 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  type Firestore,
 } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -25,11 +24,11 @@ let testEnvironment: RulesTestEnvironment;
 function authenticatedDb(
   userId: string,
   token: Record<string, unknown> = {},
-): Firestore {
+) {
   return testEnvironment.authenticatedContext(userId, token).firestore();
 }
 
-function unauthenticatedDb(): Firestore {
+function unauthenticatedDb() {
   return testEnvironment.unauthenticatedContext().firestore();
 }
 
@@ -87,14 +86,14 @@ describeWithEmulator('regras do Firestore', () => {
         rules: readFileSync(resolve(process.cwd(), 'firestore.rules'), 'utf8'),
       },
     });
-  });
+  }, 60_000); // A JVM compila as regras na primeira inicializacao do emulador.
 
   beforeEach(async () => {
     await testEnvironment.clearFirestore();
   });
 
   afterAll(async () => {
-    await testEnvironment.cleanup();
+    await testEnvironment?.cleanup();
   });
 
   it('nega acesso anonimo e permite leituras publicas somente autenticadas', async () => {
