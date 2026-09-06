@@ -9,14 +9,17 @@ description = "TRQ-BEC backend reference implementation for app_LiberRotas"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "CacheControl>=0.14.3,<1",
   "cryptography>=46,<48",
   "fastapi>=0.116,<1",
   "firebase-admin>=7,<8",
+  "google-auth>=2.55,<3",
   "google-cloud-storage>=3.13,<4",
   "Pillow>=12.3,<13",
   "psycopg[binary,pool]>=3.2,<4",
   "pydantic-settings>=2.10,<3",
   "redis>=6,<9",
+  "requests>=2.34,<3",
   "uvicorn[standard]>=0.35,<1",
 ]
 authors = [{name = "Reginaldo Camargo Pires"}]

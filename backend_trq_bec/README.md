@@ -264,6 +264,10 @@ Eventos financiados distribuem o orçamento igualmente entre afiliados quando n�
 
 `GET /v1/time` é público e serve para sincronizar relógios visuais. Todas as decisões de validade permanecem no servidor: o horário enviado pelo cliente nunca autoriza cupom, feira ou operação de segurança.
 
+A validação dos ID tokens de login tolera **5 minutos (300 segundos)** de diferença entre o relógio do servidor e o Firebase, tanto na emissão (`iat`) quanto na expiração (`exp`). O Firebase Admin limita seu parâmetro a 60 segundos; `server/auth.py` usa esse limite na primeira verificação e, somente se o SDK rejeitar por tempo, repete a verificação da assinatura com `google-auth` e a janela de 300 segundos. Projeto, emissor, algoritmo e identidade continuam validados pelo SDK; a consulta da conta e a verificação de revogação também são obrigatórias em produção no caminho adicional. Contas, senhas, permissões e prazos de cupons não são alterados.
+
+Essa tolerância compensa o atraso, mas não sincroniza o Windows. Para diagnosticar, execute `w32tm /query /status` e `w32tm /stripchart /computer:time.windows.com /samples:3 /dataonly` no PowerShell. O ajuste do relógio fica em **Configurações > Hora e idioma > Data e hora > Sincronizar agora**. Na pasta `backend_trq_bec`, os testes de limite e preservação dos bloqueios são executados com `.\.venv\Scripts\python.exe -m pytest tests/test_auth_clock_skew.py -q`.
+
 Operações administrativas ficam em contrato separado:
 
 ```text

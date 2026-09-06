@@ -366,7 +366,7 @@ Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-O resultado atual é `197 testes` e `63 subtestes`; o OpenAPI contém `94` caminhos e `106` operações.
+Em 06/09/2026, o resultado foi `230 testes` e `63 subtestes`, incluindo os limites da tolerância de 5 minutos no login Firebase; o OpenAPI contém `94` caminhos e `106` operações.
 
 ## 10. GitHub e entrega acadêmica
 

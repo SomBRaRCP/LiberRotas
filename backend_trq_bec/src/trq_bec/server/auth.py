@@ -2,23 +2,67 @@
 
 from __future__ import annotations
 
+from functools import lru_cache, partial
 from typing import Annotated, Protocol
 
 import firebase_admin
+import requests
+from cachecontrol import CacheControl
 from fastapi import HTTPException, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import auth, credentials
+from google.auth.transport.requests import Request as GoogleAuthRequest
+from google.oauth2 import id_token
 
 from .config import ServerSettings
 from .models import Principal
 
 
-# O Firebase Admin aceita no máximo 60 segundos. Mantemos uma janela curta para
-# absorver a diferença de relógio entre Windows, Docker Desktop e os servidores
-# do Firebase durante o login imediato. Em máquinas Windows sem sincronização
-# NTP ativa, observamos tokens emitidos 11 segundos à frente do relógio local;
-# 30 segundos cobre esse desvio sem desativar a validação nem a revogação.
-FIREBASE_ID_TOKEN_CLOCK_SKEW_SECONDS = 30
+# Tolerância solicitada para o desvio entre Windows/Docker e Firebase.
+# O Admin SDK limita seu parâmetro a 60 s; somente falhas de tempo passam pela
+# segunda verificação assinada com google-auth, que aceita os 300 s completos.
+FIREBASE_ID_TOKEN_CLOCK_SKEW_SECONDS = 300
+FIREBASE_ADMIN_CLOCK_SKEW_SECONDS = 60
+
+
+@lru_cache(maxsize=1)
+def _firebase_certificate_request():
+    # Respeita o Cache-Control das chaves públicas e limita a espera de rede.
+    session = CacheControl(requests.Session())
+    return partial(GoogleAuthRequest(session=session), timeout=10)
+
+
+def _verify_firebase_id_token(bearer_token: str, *, check_revoked: bool) -> dict:
+    try:
+        return auth.verify_id_token(
+            bearer_token,
+            check_revoked=check_revoked,
+            clock_skew_seconds=FIREBASE_ADMIN_CLOCK_SKEW_SECONDS,
+        )
+    except auth.InvalidIdTokenError as exc:
+        # O SDK já validou algoritmo, kid, projeto, emissor e sub antes desta
+        # falha. Outros erros nunca habilitam a tolerância adicional.
+        if not isinstance(exc.cause, ValueError) or not str(exc.cause).startswith(
+            ("Token used too early,", "Token expired,")
+        ):
+            raise
+
+    claims = dict(id_token.verify_firebase_token(
+        bearer_token,
+        request=_firebase_certificate_request(),
+        audience=firebase_admin.get_app().project_id,
+        clock_skew_in_seconds=FIREBASE_ID_TOKEN_CLOCK_SKEW_SECONDS,
+    ))
+    claims["uid"] = claims["sub"]
+    if check_revoked:
+        # Mesma regra do Firebase Admin 7: revogação compara iat com o marco
+        # da conta, sem aplicar tolerância à revogação ou a contas desativadas.
+        user = auth.get_user(claims["uid"])
+        if user.disabled:
+            raise auth.UserDisabledError("The user record is disabled.")
+        if claims["iat"] * 1000 < user.tokens_valid_after_timestamp:
+            raise auth.RevokedIdTokenError("The Firebase ID token has been revoked.")
+    return claims
 
 
 firebase_id_token = HTTPBearer(
@@ -54,10 +98,9 @@ class FirebaseAuthenticator:
 
     def verify(self, bearer_token: str) -> Principal:
         try:
-            claims = auth.verify_id_token(
+            claims = _verify_firebase_id_token(
                 bearer_token,
                 check_revoked=self.settings.firebase_check_revoked,
-                clock_skew_seconds=FIREBASE_ID_TOKEN_CLOCK_SKEW_SECONDS,
             )
         except Exception as exc:
             raise HTTPException(
