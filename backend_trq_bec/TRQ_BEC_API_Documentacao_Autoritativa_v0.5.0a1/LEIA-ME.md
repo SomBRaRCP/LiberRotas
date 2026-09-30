@@ -31,7 +31,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 O script usa por padrão:
 
 ```text
-F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec
+E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec
 ```
 
 Para outro caminho:
@@ -45,7 +45,7 @@ O instalador cria uma cópia dos arquivos anteriores em uma pasta `.backup-api-d
 ## Recriar a API
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 docker compose build api
 docker compose up -d api
 docker compose logs --since 2m api

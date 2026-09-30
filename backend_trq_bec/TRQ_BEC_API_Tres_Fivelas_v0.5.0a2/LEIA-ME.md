@@ -62,7 +62,7 @@ O instalador cria backup antes de substituir ou remover arquivos.
 ## Reconstruir a API
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 docker compose build api
 docker compose up -d api
 docker compose logs --since 2m api

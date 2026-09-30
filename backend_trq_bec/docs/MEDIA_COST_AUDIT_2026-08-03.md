@@ -93,7 +93,7 @@ migration de identidade mais ampla e não pertence a este lote seguro.
 Execute na pasta `backend_trq_bec`, nunca imprimindo valores do `.env`:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 docker compose logs api --since 24h --no-color |
   Select-String -Pattern '/v1/(public/)?media|/v1/public/profile/.+/avatar'
 ```

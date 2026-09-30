@@ -1,8 +1,11 @@
 param(
-    [string]$BackendPath = "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+    [string]$BackendPath = ""
 )
 
 $ErrorActionPreference = "Stop"
+if ([string]::IsNullOrWhiteSpace($BackendPath)) {
+    $BackendPath = Split-Path $PSScriptRoot -Parent
+}
 $PayloadPath = Join-Path $PSScriptRoot "payload"
 
 if (-not (Test-Path $PayloadPath)) {

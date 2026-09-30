@@ -1,6 +1,6 @@
 # Compilação Android e iOS
 
-Execute os comandos deste documento em `F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app`.
+Execute os comandos deste documento em `E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app`.
 
 O app usa Expo SDK 57, React Native 0.86.3 e identificador `com.sombrarcp.liberrotas` para Android e iOS. `eas.json` define os ambientes `preview` e `production`; `preview` gera APK para instalação interna. Não altere o identificador depois de distribuir o app sem avaliar a migração.
 

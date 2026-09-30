@@ -138,7 +138,9 @@ docker --version
 docker compose version
 ```
 
-Os comandos deste guia usam o caminho atual deste PC: `F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3`. Se a pasta for movida ou copiada para outro Windows, substitua esse início pelo novo caminho. A partir da raiz do workspace, também é possível entrar nos módulos com `Set-Location .\mobile_app` e `Set-Location .\backend_trq_bec`.
+Os comandos deste guia usam o caminho atual deste PC: `E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3`. Se a pasta for movida ou copiada para outro Windows, substitua esse início pelo novo caminho. A partir da raiz do workspace, também é possível entrar nos módulos com `Set-Location .\mobile_app` e `Set-Location .\backend_trq_bec`.
+
+A migração para o SSD foi concluída e validada em 30/09/2026. Consulte o [registro da migração](backend_trq_bec/docs/MIGRACAO_SSD_2026-09-30.md) para os ajustes, verificações e localização dos backups.
 
 ## Produção Web com Docker Compose
 
@@ -172,7 +174,7 @@ O Compose também recebe as seis variáveis `EXPO_PUBLIC_FIREBASE_*` descritas e
 Execute na **raiz do workspace**:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
 .\INICIAR_LIBERROTAS.ps1
 ```
 
@@ -299,7 +301,7 @@ O diretório estático é `mobile_app\dist`. A imagem final copia somente esse d
 Abra um PowerShell na pasta do app:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
 npx expo start --web --port 8082
 ```
 
@@ -312,7 +314,7 @@ Não alterne entre `127.0.0.1`, `localhost`, outra porta e o domínio público d
 Na pasta `mobile_app`, execute:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
 npx expo start --port 8082
 ```
 
@@ -377,7 +379,7 @@ As antigas contas locais de demonstração não são mais a fonte real de login.
 Execute na pasta `backend_trq_bec`:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -e ".[test]"
@@ -461,7 +463,7 @@ O alerta de novo dispositivo usa SMTP somente no backend. Para a Brevo, execute 
 configurador seguro na raiz do workspace:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
 .\CONFIGURAR_EMAIL_DISPOSITIVOS.ps1
 ```
 
@@ -509,7 +511,7 @@ O destinatário do alerta é obtido exclusivamente por `firebase_admin.auth.get_
 Abra o Docker Desktop e aguarde o mecanismo ficar ativo. Para a pilha completa, use o script na raiz do workspace:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
 .\INICIAR_LIBERROTAS.ps1
 ```
 
@@ -773,7 +775,7 @@ Para produção Web, execute na raiz:
 Para testar o aplicativo móvel com Expo Go, abra outro terminal:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
 npx expo start --port 8082
 ```
 

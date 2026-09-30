@@ -216,7 +216,7 @@ constraints, índices e permissões iniciais sem remover tabela ou campo legado.
 O comando normal da API executa migrations antes de iniciar:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 docker compose run --rm api trq-bec-migrate
 ```
 
@@ -330,7 +330,7 @@ Nunca abra, imprima ou faça `Get-Content` da chave para validar a montagem.
 Confira somente metadados:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 docker compose exec api stat -c "%a %u:%g %n" /run/secrets/gcs-service-account.json
 ```
 
@@ -439,7 +439,7 @@ gcloud iam service-accounts keys create $TemporaryKey `
   --iam-account=$ServiceAccount `
   --project=$ProjectId
 
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 New-Item -ItemType Directory -Force ".\secrets" | Out-Null
 Copy-Item -LiteralPath $TemporaryKey `
   -Destination ".\secrets\gcs-service-account.json"
@@ -467,7 +467,7 @@ permite somente:
 Revise antes de aplicar:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 Get-Content -LiteralPath ".\config\gcs-cors.example.json"
 ```
 
@@ -511,7 +511,7 @@ Invoke-RestMethod `
 ```
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 Get-Content -LiteralPath ".\config\gcs-lifecycle.example.json"
 
 gcloud storage buckets update "gs://$Bucket" `
@@ -530,7 +530,7 @@ política de retenção aprovada.
 Copie o exemplo somente se o arquivo operacional ainda não existir:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 if (-not (Test-Path -LiteralPath ".env.backend")) {
   Copy-Item -LiteralPath ".env.backend.example" -Destination ".env.backend"
 }
@@ -565,7 +565,7 @@ Get-Content -LiteralPath ".env.backend" |
 Da raiz do workspace:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
 .\INICIAR_LIBERROTAS.ps1 -Rebuild
 ```
 
@@ -606,7 +606,7 @@ Os testes automatizados não devem exigir bucket real. Use o
 Comandos locais:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 .\.venv\Scripts\python.exe -m pytest tests -q
 .\.venv\Scripts\python.exe -m compileall -q src tests
 ```
@@ -614,7 +614,7 @@ Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 Frontend:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
 npm run lint
 npx tsc --noEmit
 npx expo install --check

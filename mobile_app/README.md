@@ -243,7 +243,7 @@ A pasta `.git` também não entra no ZIP acadêmico. O pacote serve para avalia�
 O ambiente virtual recomendado para o backend fica na própria pasta do backend:
 
 ```text
-F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec\.venv
+E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec\.venv
 ```
 
 O ponto que estava confundindo tudo é outro: a raiz é o **workspace completo**, mas o projeto Python instalável está dentro de:
@@ -270,7 +270,7 @@ deactivate
 Entre na pasta do backend:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 ```
 
 ## 2. Crie o ambiente do backend se ele ainda não existir
@@ -297,7 +297,7 @@ Confirme qual Python está sendo usado:
 O resultado precisa apontar para:
 
 ```text
-F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec\.venv\Scripts\python.exe
+E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec\.venv\Scripts\python.exe
 ```
 
 ## 3. Instale o backend na própria pasta
@@ -357,7 +357,7 @@ Também pode usar o caminho absoluto do ambiente:
 Confirme que o terminal continua em `backend_trq_bec`:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 ```
 
 Execute os testes usando o ambiente do backend:
@@ -369,7 +369,7 @@ Execute os testes usando o ambiente do backend:
 Quando terminar, volte à raiz do workspace:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
 ```
 
 ## Estrutura atual
@@ -415,13 +415,13 @@ O pacote Python instalável e seu ambiente local pertencem ao backend. A raiz or
 O projeto Node/Expo está dentro de:
 
 ```text
-F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app
+E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app
 ```
 
 Entre nessa pasta e execute:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
 
 npm ci
 ```

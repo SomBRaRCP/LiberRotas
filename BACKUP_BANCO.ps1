@@ -1,9 +1,13 @@
 [CmdletBinding()]
 param(
-    [string]$Destino = (Join-Path $PSScriptRoot "backend_trq_bec\backups\postgresql")
+    [string]$Destino = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+if ([string]::IsNullOrWhiteSpace($Destino)) {
+    $Destino = Join-Path $PSScriptRoot "backend_trq_bec\backups\postgresql"
+}
 
 $lrComposeFile = Join-Path $PSScriptRoot "backend_trq_bec\docker-compose.yml"
 if (-not (Test-Path -LiteralPath $lrComposeFile)) {

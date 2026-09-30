@@ -26,7 +26,7 @@ interface; o efeito comercial ocorre de forma transacional no PostgreSQL.
 
 ## Configuração no Windows
 
-Na pasta `F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app`, copie o
+Na pasta `E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app`, copie o
 modelo se ainda não existir um arquivo local:
 
 ```powershell

@@ -80,14 +80,14 @@ O Compose fica em `backend_trq_bec/docker-compose.yml`. Para construir somente
 a imagem Web:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 docker compose --env-file .env --env-file ../mobile_app/.env.local build web
 ```
 
 Para iniciar toda a pilha, volte à raiz e use:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
 .\INICIAR_LIBERROTAS.ps1
 ```
 

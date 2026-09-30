@@ -18,7 +18,7 @@ if ([string]::IsNullOrWhiteSpace($BackendPath)) {
         $BackendPath = $Candidate
     }
     else {
-        $BackendPath = "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+        throw "Backend nao encontrado ao lado deste pacote. Informe -BackendPath com a pasta backend_trq_bec."
     }
 }
 

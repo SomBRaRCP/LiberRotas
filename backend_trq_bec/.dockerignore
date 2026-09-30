@@ -1,6 +1,10 @@
 .git
 .gitignore
 .venv
+.venv.*
+.backup-*
+backups
+.pytest_cache
 __pycache__
 *.pyc
 *.pyo

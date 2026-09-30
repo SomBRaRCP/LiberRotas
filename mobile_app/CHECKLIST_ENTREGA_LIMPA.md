@@ -8,7 +8,7 @@ O repositório oficial é privado: [SomBRaRCP/LiberRotas](https://github.com/Som
 
 ## Gerar os pacotes
 
-Na raiz `F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3`, execute:
+Na raiz `E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3`, execute:
 
 ```powershell
 .\scripts\build-academic-package.ps1 -Force

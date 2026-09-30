@@ -13,7 +13,7 @@ Este mapa considera o ambiente Windows atual:
 ## Visão rápida
 
 ```text
-F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3
+E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3
 │
 ├── Web de produção + API + PostgreSQL + Redis
 │   ├── iniciar ........ .\INICIAR_LIBERROTAS.ps1
@@ -42,7 +42,7 @@ npm.cmd run lint
 Abra o PowerShell na raiz do workspace:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
 .\INICIAR_LIBERROTAS.ps1
 ```
 
@@ -104,7 +104,7 @@ segredo fora do arquivo de ambiente, reinicia somente a API e testa a
 autenticação:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
 .\CONFIGURAR_EMAIL_DISPOSITIVOS.ps1
 ```
 
@@ -135,7 +135,7 @@ TRQ_BEC_EMAIL_FROM=seguranca@liberrotas.com.br
 Crie o segredo sem colocar a senha no histórico do terminal:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 New-Item -ItemType Directory -Force ".\secrets" | Out-Null
 notepad ".\secrets\smtp-password"
 ```
@@ -163,7 +163,7 @@ mostrado acima.
 Abra um **segundo PowerShell** e execute:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
 npx expo start --port 8082
 ```
 
@@ -203,7 +203,7 @@ Para provisionar uma função, execute na pasta `backend_trq_bec` e informe UID
 ou e-mail exato, nunca a senha:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 docker compose exec api trq-bec-set-role <UID_OU_EMAIL> <admin|support|security|entrepreneur|visitor>
 ```
 
@@ -252,7 +252,7 @@ Use esta opção apenas para programar com atualização rápida do Expo. Ela n�
 substitui o Nginx de produção:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
 npx expo start --web --port 8082
 ```
 
@@ -265,7 +265,7 @@ outra identidade de dispositivo no IndexedDB.
 Execute na raiz do workspace:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3"
 .\INICIAR_LIBERROTAS.ps1 -Rebuild
 ```
 
@@ -336,7 +336,7 @@ Para gerar um backup PostgreSQL dentro do workspace, execute na raiz:
 Se o Expo apresentar cache antigo:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
 npx expo start --clear --port 8082
 ```
 
@@ -345,7 +345,7 @@ npx expo start --clear --port 8082
 Na pasta `mobile_app`, execute primeiro a suíte Vitest e depois a suíte separada das regras Firestore:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\mobile_app"
 npm.cmd test
 npm.cmd run test:firestore
 npx.cmd tsc --noEmit
@@ -362,7 +362,7 @@ Em 04/09/2026, Expo Doctor passou `21/21`. A auditoria da árvore de produção 
 Na pasta `backend_trq_bec`, execute:
 
 ```powershell
-Set-Location "F:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
+Set-Location "E:\trq_bec\LiberRotas_TRQ_BEC_Workspace_v3\backend_trq_bec"
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
