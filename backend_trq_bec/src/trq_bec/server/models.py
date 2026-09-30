@@ -183,6 +183,27 @@ class InstitutionGroupCreateRequest(StrictModel):
     city: str | None = Field(default=None, min_length=2, max_length=120)
 
 
+class InstitutionBadgePolicy(StrictModel):
+    green_percent: int = Field(ge=0, le=100, strict=True)
+    yellow_percent: int = Field(ge=0, le=100, strict=True)
+    red_percent: int = Field(ge=0, le=100, strict=True)
+
+    @model_validator(mode="after")
+    def validate_total(self) -> "InstitutionBadgePolicy":
+        if self.green_percent + self.yellow_percent + self.red_percent != 100:
+            raise ValueError("Os percentuais dos três selos devem somar 100%.")
+        return self
+
+
+class InstitutionBadgeUpdateRequest(StrictModel):
+    support_badge: Literal["GREEN", "YELLOW", "RED"]
+
+
+class InstitutionBadgeDistribution(StrictModel):
+    policy: InstitutionBadgePolicy
+    seller_badges: dict[str, Literal["GREEN", "YELLOW", "RED"]]
+
+
 class InstitutionGroupResponse(StrictModel):
     group_id: str = Field(
         min_length=13,
@@ -197,6 +218,7 @@ class InstitutionGroupResponse(StrictModel):
     created_at: datetime
     updated_at: datetime
     closed_at: datetime | None
+    badge_policy: InstitutionBadgePolicy | None = None
 
 
 class InstitutionGroupListResponse(StrictModel):
@@ -226,6 +248,7 @@ class InstitutionMembershipResponse(StrictModel):
     active_from: datetime | None
     ended_at: datetime | None
     updated_at: datetime
+    support_badge: Literal["GREEN", "YELLOW", "RED"] | None = None
 
 
 class InstitutionMembershipListResponse(StrictModel):
@@ -371,6 +394,7 @@ class InstitutionFundedEventResponse(StrictModel):
     seller_allocations: list[InstitutionFundedEventSellerAllocationResponse] = Field(
         max_length=100
     )
+    badge_distribution: InstitutionBadgeDistribution | None = None
 
 
 class InstitutionFundedEventListResponse(StrictModel):
@@ -1962,6 +1986,7 @@ class InstitutionGroupRecord:
     created_at: datetime
     updated_at: datetime
     closed_at: datetime | None
+    badge_policy: InstitutionBadgePolicy | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1978,6 +2003,7 @@ class InstitutionMembershipRecord:
     active_from: datetime | None
     ended_at: datetime | None
     updated_at: datetime
+    support_badge: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -2058,6 +2084,7 @@ class InstitutionFundedEventRecord:
     activated_at: datetime | None
     ended_at: datetime | None
     seller_allocations: tuple[InstitutionFundedEventSellerAllocationRecord, ...]
+    badge_distribution: InstitutionBadgeDistribution | None = None
 
 
 @dataclass(frozen=True, slots=True)

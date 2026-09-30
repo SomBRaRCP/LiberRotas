@@ -20,7 +20,10 @@ from ..errors import LedgerError
 from ..ledger.ledger import _validate_sanitized
 from .access_control import default_permissions
 from .catalog_state import offer_public_state, product_public_state
+from .institution_badges import allocate_by_badges
 from .models import (
+    InstitutionBadgePolicy,
+    InstitutionBadgeDistribution,
     AccessAccountRecord,
     AccessAccountSummaryRecord,
     AccessAuditEventRecord,
@@ -247,6 +250,12 @@ class DurableStore(Protocol):
         updates: dict[str, str | None],
         updated_at: datetime,
     ) -> InstitutionProfileRecord: ...
+    def set_institution_badge_policy(
+        self, owner_uid: str, group_id: str, policy: InstitutionBadgePolicy, updated_at: datetime,
+    ) -> InstitutionGroupRecord: ...
+    def set_institution_member_badge(
+        self, owner_uid: str, group_id: str, membership_id: str, badge: str, updated_at: datetime,
+    ) -> InstitutionMembershipRecord: ...
     def create_institution_group(
         self, group: InstitutionGroupRecord
     ) -> InstitutionGroupRecord: ...
@@ -304,6 +313,7 @@ class DurableStore(Protocol):
         event_id: str,
         allocations: tuple[tuple[str, int], ...],
         updated_at: datetime,
+        *, by_badges: bool = False,
     ) -> InstitutionFundedEventRecord: ...
     def activate_institution_funded_event(
         self, owner_uid: str, event_id: str, activated_at: datetime
@@ -1706,6 +1716,11 @@ class PostgresStore:
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             closed_at=row["closed_at"],
+            badge_policy=InstitutionBadgePolicy(
+                green_percent=row["badge_green_percent"],
+                yellow_percent=row["badge_yellow_percent"],
+                red_percent=row["badge_red_percent"],
+            ) if row.get("badge_green_percent") is not None else None,
         )
 
     @staticmethod
@@ -1716,6 +1731,7 @@ class PostgresStore:
             group_name=row["group_name"],
             institution_name=row["institution_name"],
             seller_uid=row["merchant_uid"],
+            support_badge=row.get("support_badge"),
             seller_name=row["seller_name"],
             status=row["status"],
             invited_at=row["invited_at"],
@@ -2090,6 +2106,42 @@ class PostgresStore:
                 else "INSTITUTION_GROUP_ACCESS_REQUIRED"
             )
             raise StoreConflict(code)
+
+    def set_institution_badge_policy(
+        self, owner_uid: str, group_id: str, policy: InstitutionBadgePolicy, updated_at: datetime,
+    ) -> InstitutionGroupRecord:
+        with self.pool.connection() as conn, conn.transaction():
+            self._lock_active_institution(conn, owner_uid)
+            group = conn.execute("SELECT * FROM institution_groups WHERE group_id = %s AND owner_uid = %s FOR UPDATE", (group_id, owner_uid)).fetchone()
+            if group is None:
+                raise StoreNotFound("INSTITUTION_GROUP_NOT_FOUND_OR_NOT_OWNED")
+            if group["status"] != "ACTIVE":
+                raise StoreConflict("INSTITUTION_GROUP_CLOSED")
+            row = conn.execute(
+                """UPDATE institution_groups SET badge_green_percent = %s, badge_yellow_percent = %s,
+                       badge_red_percent = %s, updated_at = %s WHERE group_id = %s RETURNING *""",
+                (policy.green_percent, policy.yellow_percent, policy.red_percent, updated_at, group_id),
+            ).fetchone()
+            return self._institution_group(row)
+
+    def set_institution_member_badge(
+        self, owner_uid: str, group_id: str, membership_id: str, badge: str, updated_at: datetime,
+    ) -> InstitutionMembershipRecord:
+        with self.pool.connection() as conn, conn.transaction():
+            self._lock_active_institution(conn, owner_uid)
+            group = conn.execute("SELECT status FROM institution_groups WHERE group_id = %s AND owner_uid = %s FOR UPDATE", (group_id, owner_uid)).fetchone()
+            if group is None:
+                raise StoreNotFound("INSTITUTION_GROUP_NOT_FOUND_OR_NOT_OWNED")
+            if group["status"] != "ACTIVE":
+                raise StoreConflict("INSTITUTION_GROUP_CLOSED")
+            member = conn.execute("SELECT status FROM institution_group_memberships WHERE group_id = %s AND membership_id = %s FOR UPDATE", (group_id, membership_id)).fetchone()
+            if member is None:
+                raise StoreNotFound("INSTITUTION_MEMBERSHIP_NOT_FOUND")
+            if member["status"] != "ACTIVE":
+                raise StoreConflict("INSTITUTION_BADGE_ACTIVE_MEMBER_REQUIRED")
+            conn.execute("UPDATE institution_group_memberships SET support_badge = %s, updated_at = %s WHERE membership_id = %s", (badge, updated_at, membership_id))
+            row = conn.execute(self._membership_select_sql() + " WHERE membership.membership_id = %s", (membership_id,)).fetchone()
+            return self._institution_membership(row)
 
     def create_institution_group(
         self,
@@ -2865,6 +2917,7 @@ class PostgresStore:
             institution_name=row["institution_name"],
             group_id=row["group_id"],
             group_name=row["group_name"],
+            badge_distribution=InstitutionBadgeDistribution.model_validate(row["badge_distribution"]) if row.get("badge_distribution") else None,
             name=row["name"],
             description=row["description"],
             funding_source=row["funding_source"],
@@ -3030,6 +3083,7 @@ class PostgresStore:
         event_id: str,
         allocations: tuple[tuple[str, int], ...],
         updated_at: datetime,
+        *, by_badges: bool = False,
     ) -> InstitutionFundedEventRecord:
         with self.pool.connection() as conn, conn.transaction():
             self._lock_active_institution(
@@ -3039,7 +3093,7 @@ class PostgresStore:
             )
             event = conn.execute(
                 """
-                SELECT budget_amount_minor, status
+                SELECT budget_amount_minor, status, group_id
                   FROM institution_funded_events
                  WHERE event_id = %s AND owner_uid = %s
                  FOR UPDATE
@@ -3050,6 +3104,26 @@ class PostgresStore:
                 raise StoreNotFound("INSTITUTION_FUNDED_EVENT_NOT_FOUND")
             if event["status"] != "DRAFT":
                 raise StoreConflict("INSTITUTION_EVENT_ALLOCATION_LOCKED")
+            distribution = None
+            if by_badges:
+                group_row = conn.execute("SELECT * FROM institution_groups WHERE group_id = %s FOR UPDATE", (event["group_id"],)).fetchone()
+                group = self._institution_group(group_row)
+                if group.status != "ACTIVE":
+                    raise StoreConflict("INSTITUTION_GROUP_CLOSED")
+                rows = conn.execute(
+                    """SELECT membership.merchant_uid, membership.support_badge, membership.status
+                         FROM institution_group_memberships AS membership
+                         JOIN institution_event_seller_allocations AS allocation USING (membership_id)
+                        WHERE allocation.event_id = %s FOR UPDATE OF membership""", (event_id,),
+                ).fetchall()
+                if any(row["status"] != "ACTIVE" for row in rows):
+                    raise StoreConflict("INSTITUTION_BADGE_ACTIVE_MEMBER_REQUIRED")
+                badges = {row["merchant_uid"]: row["support_badge"] for row in rows}
+                try:
+                    allocations = allocate_by_badges(int(event["budget_amount_minor"]), group.badge_policy, badges)
+                except ValueError as exc:
+                    raise StoreConflict(str(exc)) from exc
+                distribution = InstitutionBadgeDistribution(policy=group.badge_policy, seller_badges=badges)
             supplied = dict(allocations)
             if len(supplied) != len(allocations):
                 raise StoreConflict("INSTITUTION_EVENT_DUPLICATE_SELLER")
@@ -3084,10 +3158,10 @@ class PostgresStore:
             conn.execute(
                 """
                 UPDATE institution_funded_events
-                   SET updated_at = %s
+                   SET updated_at = %s, badge_distribution = %s
                  WHERE event_id = %s
                 """,
-                (updated_at, event_id),
+                (updated_at, Jsonb(distribution.model_dump()) if distribution else None, event_id),
             )
             return self._load_institution_funded_event(
                 conn,

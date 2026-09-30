@@ -1,6 +1,11 @@
 import type { AuthenticatedRequest } from "@/api/http-client";
 
+export type SupportBadge = "GREEN" | "YELLOW" | "RED";
+export type InstitutionBadgePolicy = { green_percent: number; yellow_percent: number; red_percent: number };
+export type InstitutionBadgeDistribution = { policy: InstitutionBadgePolicy; seller_badges: Record<string, SupportBadge> };
+
 export type InstitutionGroup = {
+  badge_policy: InstitutionBadgePolicy | null;
   group_id: string;
   owner_uid: string;
   name: string;
@@ -15,6 +20,7 @@ export type InstitutionGroup = {
 export type InstitutionMembershipStatus = "PENDING" | "ACTIVE" | "DECLINED" | "REMOVED" | "LEFT";
 
 export type InstitutionMembership = {
+  support_badge: SupportBadge | null;
   membership_id: string;
   group_id: string;
   group_name: string;
@@ -86,6 +92,7 @@ export type InstitutionFundedEventSellerAllocation = {
 };
 
 export type InstitutionFundedEvent = {
+  badge_distribution: InstitutionBadgeDistribution | null;
   event_id: string;
   group_id: string;
   group_name: string;
@@ -416,7 +423,22 @@ export function createInstitutionsApi(requestAuthenticated: AuthenticatedRequest
     return requestAuthenticated("GET", "/v1/institution/reports/summary");
   }
 
+  function setInstitutionBadgePolicy(groupId: string, policy: InstitutionBadgePolicy): Promise<InstitutionGroup> {
+    return requestAuthenticated("PUT", `/v1/institution/groups/${encodeURIComponent(groupId)}/badge-policy`, policy);
+  }
+
+  function setInstitutionMemberBadge(groupId: string, membershipId: string, badge: SupportBadge): Promise<InstitutionMembership> {
+    return requestAuthenticated("PUT", `/v1/institution/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(membershipId)}/badge`, { support_badge: badge });
+  }
+
+  function applyInstitutionEventBadges(eventId: string): Promise<InstitutionFundedEvent> {
+    return requestAuthenticated("POST", `/v1/institution/funded-events/${encodeURIComponent(eventId)}/badge-allocations`);
+  }
+
   return {
+    setInstitutionBadgePolicy,
+    setInstitutionMemberBadge,
+    applyInstitutionEventBadges,
     activateInstitutionFundedEvent,
     closeInstitutionGroup,
     createInstitutionFundedEvent,

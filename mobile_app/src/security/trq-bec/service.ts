@@ -325,6 +325,11 @@ const FRIENDLY_MESSAGES: Record<string, string> = {
   INSTITUTION_EVENT_ALLOCATION_LOCKED: "As cotas deste evento já estão bloqueadas e não podem mais ser alteradas.",
   INSTITUTION_EVENT_DUPLICATE_SELLER: "Um mesmo afiliado foi informado mais de uma vez na divisão da verba.",
   INSTITUTION_EVENT_SELLER_SET_MISMATCH: "A divisão precisa incluir exatamente os afiliados ativos do grupo.",
+  INSTITUTION_GROUP_CLOSED: "Este grupo está encerrado. Os selos, percentuais e a distribuição por selos não podem ser alterados.",
+  INSTITUTION_BADGE_POLICY_REQUIRED: "Defina os percentuais dos três selos na aba Grupos antes de distribuir a verba.",
+  INSTITUTION_BADGE_CLASSIFICATION_REQUIRED: "Classifique todos os feirantes participantes antes de distribuir por selos.",
+  INSTITUTION_BADGE_EMPTY_CATEGORY: "Um selo com percentual maior que zero não tem participantes neste evento. Ajuste os percentuais ou a classificação antes de aplicar.",
+  INSTITUTION_BADGE_ACTIVE_MEMBER_REQUIRED: "A classificação e a distribuição por selos exigem filiados ativos. Revise os participantes do grupo e do evento.",
   INSTITUTION_EVENT_BUDGET_TOTAL_MISMATCH: "A soma das cotas dos afiliados precisa ser igual ao valor total do evento.",
   INSTITUTION_EVENT_DUPLICATE_PRODUCT: "Um mesmo produto foi informado mais de uma vez na divisão da verba.",
   INSTITUTION_EVENT_PRODUCT_TOTAL_MISMATCH: "A soma destinada aos produtos precisa ser igual à cota do empreendedor.",
@@ -1088,6 +1093,10 @@ export async function loadSecurityMonitoringSummary(): Promise<SecurityMonitorin
 export async function loadTrqBecSecurityStatus(): Promise<TrqBecSecurityStatus> {
   return requestAuthenticated<TrqBecSecurityStatus>("GET", "/v1/security/trq-bec/status");
 }
+
+export const setInstitutionBadgePolicy = institutionsApi.setInstitutionBadgePolicy;
+export const setInstitutionMemberBadge = institutionsApi.setInstitutionMemberBadge;
+export const applyInstitutionEventBadges = institutionsApi.applyInstitutionEventBadges;
 
 export const activateInstitutionFundedEvent = institutionsApi.activateInstitutionFundedEvent;
 export const closeInstitutionGroup = institutionsApi.closeInstitutionGroup;

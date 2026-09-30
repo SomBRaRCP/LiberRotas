@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, Path, Query, Request
 from ..auth import require_principal
 from ..docs import AUTHENTICATION_RESPONSE
 from ..models import (
+    InstitutionBadgePolicy,
+    InstitutionBadgeUpdateRequest,
     EntrepreneurFundedEventListResponse,
     EntrepreneurFundedEventReportResponse,
     EntrepreneurFundedEventResponse,
@@ -459,3 +461,40 @@ def set_institution_event_product_allocations(
     return _service(request).set_institution_event_product_allocations(
         principal, event_id, payload
     )
+
+
+@router.put(
+    "/v1/institution/groups/{group_id}/badge-policy", response_model=InstitutionGroupResponse,
+    tags=["Instituicao"], operation_id="setInstitutionBadgePolicy", responses=AUTHENTICATION_RESPONSE,
+)
+def set_institution_badge_policy(
+    payload: InstitutionBadgePolicy, request: Request,
+    group_id: str = Path(min_length=13, max_length=40, pattern=r"^IGRP-[A-Z0-9]+$"),
+    principal: Principal = Depends(require_principal),
+) -> InstitutionGroupResponse:
+    return _service(request).set_institution_badge_policy(principal, group_id, payload)
+
+
+@router.put(
+    "/v1/institution/groups/{group_id}/members/{membership_id}/badge", response_model=InstitutionMembershipResponse,
+    tags=["Instituicao"], operation_id="setInstitutionMemberBadge", responses=AUTHENTICATION_RESPONSE,
+)
+def set_institution_member_badge(
+    payload: InstitutionBadgeUpdateRequest, request: Request,
+    group_id: str = Path(min_length=13, max_length=40, pattern=r"^IGRP-[A-Z0-9]+$"),
+    membership_id: str = Path(min_length=20, max_length=36, pattern=r"^IGM-[A-Z0-9]{16,32}$"),
+    principal: Principal = Depends(require_principal),
+) -> InstitutionMembershipResponse:
+    return _service(request).set_institution_member_badge(principal, group_id, membership_id, payload)
+
+
+@router.post(
+    "/v1/institution/funded-events/{event_id}/badge-allocations", response_model=InstitutionFundedEventResponse,
+    tags=["Instituicao"], operation_id="applyInstitutionEventBadges", responses=AUTHENTICATION_RESPONSE,
+)
+def apply_institution_event_badges(
+    request: Request,
+    event_id: str = Path(min_length=21, max_length=37, pattern=r"^IEVT-[A-Z0-9]{16,32}$"),
+    principal: Principal = Depends(require_principal),
+) -> InstitutionFundedEventResponse:
+    return _service(request).apply_institution_event_badges(principal, event_id)

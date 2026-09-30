@@ -1,3 +1,4 @@
+import { SupportBadgeLabel } from "@/components/institution-support-badges";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
@@ -14,6 +15,7 @@ import { AppButton, FormField } from "@/components/ui";
 import { colors, radius } from "@/constants/theme";
 import { useTrustedClock } from "@/context/trusted-clock-context";
 import {
+  applyInstitutionEventBadges,
   activateInstitutionFundedEvent,
   createInstitutionFundedEvent,
   endInstitutionFundedEvent,
@@ -366,6 +368,29 @@ export function InstitutionFundedEventsContent() {
     }
   }
 
+  async function applyBadges(event: InstitutionFundedEvent) {
+    if (busyAction) return;
+    const confirmed = await confirmStaffAction(
+      "Aplicar divisão por selos?",
+      "As cotas deste rascunho serão substituídas pelos percentuais salvos do grupo. A parcela de cada selo será dividida igualmente entre os participantes dessa categoria. A divisão entre produtos precisará ser refeita. Revise os valores antes de ativar.",
+      "Aplicar selos",
+    );
+    if (!confirmed) return;
+    setBusyAction(`badges:${event.event_id}`);
+    setError("");
+    try {
+      const updated = await applyInstitutionEventBadges(event.event_id);
+      replaceEvent(updated);
+      showStaffAlert("Divisão por selos aplicada", "Confira a cota de cada feirante antes de ativar o evento.");
+    } catch (error) {
+      const message = getPanelErrorMessage(error, "Não foi possível aplicar os selos.");
+      setError(message);
+      showStaffAlert("Divisão não aplicada", message);
+    } finally {
+      setBusyAction("");
+    }
+  }
+
   async function finishEvent(event: InstitutionFundedEvent) {
     const confirmed = await confirmStaffAction(
       "Encerrar o evento agora?",
@@ -407,7 +432,7 @@ export function InstitutionFundedEventsContent() {
   return (
     <>
       <StaffSection
-        description="A verba é dividida igualmente entre os afiliados ativos por padrão. Você pode ajustar as cotas antes de ativar."
+        description="O rascunho começa com divisão igual. Antes de ativar, aplique os selos configurados na aba Grupos ou ajuste as cotas manualmente."
         title="Criar evento com verba promocional"
       >
         <Text style={styles.fieldLabel}>Grupo que receberá a verba</Text>
@@ -520,10 +545,17 @@ export function InstitutionFundedEventsContent() {
             ) : null}
 
             <Text style={styles.subsectionTitle}>Divisão entre afiliados</Text>
+            {event.badge_distribution ? (
+              <StaffMessage>
+                Divisão aplicada por selos: vermelho {event.badge_distribution.policy.red_percent}%, amarelo {event.badge_distribution.policy.yellow_percent}%, verde {event.badge_distribution.policy.green_percent}%.
+                Os selos abaixo são os registrados nesta distribuição.
+              </StaffMessage>
+            ) : null}
             {event.seller_allocations.map((seller) => (
               <View key={seller.seller_uid} style={styles.allocationRow}>
                 <View style={styles.allocationText}>
                   <Text style={styles.productTitle}>{seller.seller_name}</Text>
+                  {event.badge_distribution ? <SupportBadgeLabel badge={event.badge_distribution.seller_badges[seller.seller_uid]} /> : null}
                   <Text style={styles.meta}>
                     {seller.product_allocation_configured
                       ? "Produtos configurados"
@@ -559,6 +591,9 @@ export function InstitutionFundedEventsContent() {
                   variant="secondary"
                 >
                   {busyAction === `allocation:${event.event_id}` ? "Salvando divisão..." : "Salvar divisão personalizada"}
+                </AppButton>
+                <AppButton disabled={Boolean(busyAction)} onPress={() => applyBadges(event)} variant="secondary">
+                  {busyAction === `badges:${event.event_id}` ? "Aplicando selos..." : "Aplicar divisão por selos"}
                 </AppButton>
                 <AppButton disabled={Boolean(busyAction)} onPress={() => activateEvent(event)}>
                   {busyAction === `activate:${event.event_id}` ? "Ativando..." : "Ativar evento"}

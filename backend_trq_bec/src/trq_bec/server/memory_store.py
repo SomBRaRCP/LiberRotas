@@ -16,7 +16,10 @@ from ..contracts import CryptoEnvelope
 from ..errors import LedgerError
 from .access_control import default_permissions
 from .catalog_state import offer_public_state, product_public_state
+from .institution_badges import allocate_by_badges
 from .models import (
+    InstitutionBadgePolicy,
+    InstitutionBadgeDistribution,
     AccessAccountRecord,
     AccessAccountSummaryRecord,
     AccessAuditEventRecord,
@@ -1523,6 +1526,39 @@ class MemoryDurableStore:
         ):
             raise StoreConflict("INSTITUTION_EVENT_ACCESS_REQUIRED")
 
+    def set_institution_badge_policy(
+        self, owner_uid: str, group_id: str, policy: InstitutionBadgePolicy, updated_at: datetime,
+    ) -> InstitutionGroupRecord:
+        with self._lock:
+            self._require_active_institution_group_access(owner_uid)
+            group = self.institution_groups.get(group_id)
+            if group is None or group.owner_uid != owner_uid:
+                raise StoreNotFound("INSTITUTION_GROUP_NOT_FOUND_OR_NOT_OWNED")
+            if group.status != "ACTIVE":
+                raise StoreConflict("INSTITUTION_GROUP_CLOSED")
+            updated = replace(group, badge_policy=policy, updated_at=updated_at)
+            self.institution_groups[group_id] = updated
+            return updated
+
+    def set_institution_member_badge(
+        self, owner_uid: str, group_id: str, membership_id: str, badge: str, updated_at: datetime,
+    ) -> InstitutionMembershipRecord:
+        with self._lock:
+            self._require_active_institution_group_access(owner_uid)
+            group = self.institution_groups.get(group_id)
+            if group is None or group.owner_uid != owner_uid:
+                raise StoreNotFound("INSTITUTION_GROUP_NOT_FOUND_OR_NOT_OWNED")
+            if group.status != "ACTIVE":
+                raise StoreConflict("INSTITUTION_GROUP_CLOSED")
+            member = self.institution_memberships.get(membership_id)
+            if member is None or member.group_id != group_id:
+                raise StoreNotFound("INSTITUTION_MEMBERSHIP_NOT_FOUND")
+            if member.status != "ACTIVE":
+                raise StoreConflict("INSTITUTION_BADGE_ACTIVE_MEMBER_REQUIRED")
+            updated = replace(member, support_badge=badge, updated_at=updated_at)
+            self.institution_memberships[membership_id] = updated
+            return updated
+
     def create_institution_group(
         self,
         group: InstitutionGroupRecord,
@@ -2182,6 +2218,7 @@ class MemoryDurableStore:
         event_id: str,
         allocations: tuple[tuple[str, int], ...],
         updated_at: datetime,
+        *, by_badges: bool = False,
     ) -> InstitutionFundedEventRecord:
         with self._lock:
             self._require_active_institution_event_access(owner_uid)
@@ -2190,6 +2227,20 @@ class MemoryDurableStore:
                 raise StoreNotFound("INSTITUTION_FUNDED_EVENT_NOT_FOUND")
             if event.status != "DRAFT":
                 raise StoreConflict("INSTITUTION_EVENT_ALLOCATION_LOCKED")
+            distribution = None
+            if by_badges:
+                group = self.institution_groups[event.group_id]
+                if group.status != "ACTIVE":
+                    raise StoreConflict("INSTITUTION_GROUP_CLOSED")
+                members = [self.institution_memberships[seller.membership_id] for seller in event.seller_allocations]
+                if any(member.status != "ACTIVE" for member in members):
+                    raise StoreConflict("INSTITUTION_BADGE_ACTIVE_MEMBER_REQUIRED")
+                badges = {member.seller_uid: member.support_badge for member in members}
+                try:
+                    allocations = allocate_by_badges(event.budget_amount_minor, group.badge_policy, badges)
+                except ValueError as exc:
+                    raise StoreConflict(str(exc)) from exc
+                distribution = InstitutionBadgeDistribution(policy=group.badge_policy, seller_badges=badges)
             supplied = dict(allocations)
             if len(supplied) != len(allocations):
                 raise StoreConflict("INSTITUTION_EVENT_DUPLICATE_SELLER")
@@ -2210,6 +2261,7 @@ class MemoryDurableStore:
                     for seller in event.seller_allocations
                 ),
                 updated_at=updated_at,
+                badge_distribution=distribution,
             )
             self.institution_funded_events[event_id] = updated
             return updated

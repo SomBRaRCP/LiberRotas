@@ -9,6 +9,19 @@ function buildApi(requestAuthenticated: AuthenticatedRequest) {
 }
 
 describe("institutions api", () => {
+  it("envia os selos e percentuais sem calcular valores financeiros no cliente", async () => {
+    const request = vi.fn(async () => ({}));
+    const api = buildApi(request as unknown as AuthenticatedRequest);
+    const policy = { green_percent: 20, yellow_percent: 30, red_percent: 50 };
+    await api.setInstitutionBadgePolicy("IGRP-A/B", policy);
+    await api.setInstitutionMemberBadge("IGRP-A/B", "IGM-A/B", "RED");
+    await api.applyInstitutionEventBadges("IEVT-A/B");
+    expect(request.mock.calls).toEqual([
+      ["PUT", "/v1/institution/groups/IGRP-A%2FB/badge-policy", policy],
+      ["PUT", "/v1/institution/groups/IGRP-A%2FB/members/IGM-A%2FB/badge", { support_badge: "RED" }],
+      ["POST", "/v1/institution/funded-events/IEVT-A%2FB/badge-allocations"],
+    ]);
+  });
   it("normaliza os campos do grupo sem alterar o contrato", async () => {
     const request = vi.fn(async () => ({ group_id: "IGRP-EXEMPLO123" })) as unknown as AuthenticatedRequest;
 

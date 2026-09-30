@@ -4571,6 +4571,308 @@
         }
       }
     },
+    "/v1/institution/groups/{group_id}/badge-policy": {
+      "put": {
+        "tags": [
+          "Instituicao"
+        ],
+        "summary": "Set Institution Badge Policy",
+        "operationId": "setInstitutionBadgePolicy",
+        "security": [
+          {
+            "FirebaseIDToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 13,
+              "maxLength": 40,
+              "pattern": "^IGRP-[A-Z0-9]+$",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstitutionBadgePolicy"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionGroupResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "bearerAusente": {
+                    "summary": "Cabeçalho Bearer ausente",
+                    "value": {
+                      "code": "AUTH_BEARER_REQUIRED",
+                      "message": "AUTH_BEARER_REQUIRED"
+                    }
+                  },
+                  "bearerInvalido": {
+                    "summary": "Cabeçalho Bearer inválido",
+                    "value": {
+                      "code": "AUTH_BEARER_INVALID",
+                      "message": "AUTH_BEARER_INVALID"
+                    }
+                  },
+                  "tokenInvalido": {
+                    "summary": "Firebase ID token inválido",
+                    "value": {
+                      "code": "AUTH_TOKEN_INVALID",
+                      "message": "AUTH_TOKEN_INVALID"
+                    }
+                  },
+                  "sujeitoInvalido": {
+                    "summary": "Sujeito do token inválido",
+                    "value": {
+                      "code": "AUTH_SUBJECT_INVALID",
+                      "message": "AUTH_SUBJECT_INVALID"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/institution/groups/{group_id}/members/{membership_id}/badge": {
+      "put": {
+        "tags": [
+          "Instituicao"
+        ],
+        "summary": "Set Institution Member Badge",
+        "operationId": "setInstitutionMemberBadge",
+        "security": [
+          {
+            "FirebaseIDToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 13,
+              "maxLength": 40,
+              "pattern": "^IGRP-[A-Z0-9]+$",
+              "title": "Group Id"
+            }
+          },
+          {
+            "name": "membership_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 36,
+              "pattern": "^IGM-[A-Z0-9]{16,32}$",
+              "title": "Membership Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstitutionBadgeUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionMembershipResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "bearerAusente": {
+                    "summary": "Cabeçalho Bearer ausente",
+                    "value": {
+                      "code": "AUTH_BEARER_REQUIRED",
+                      "message": "AUTH_BEARER_REQUIRED"
+                    }
+                  },
+                  "bearerInvalido": {
+                    "summary": "Cabeçalho Bearer inválido",
+                    "value": {
+                      "code": "AUTH_BEARER_INVALID",
+                      "message": "AUTH_BEARER_INVALID"
+                    }
+                  },
+                  "tokenInvalido": {
+                    "summary": "Firebase ID token inválido",
+                    "value": {
+                      "code": "AUTH_TOKEN_INVALID",
+                      "message": "AUTH_TOKEN_INVALID"
+                    }
+                  },
+                  "sujeitoInvalido": {
+                    "summary": "Sujeito do token inválido",
+                    "value": {
+                      "code": "AUTH_SUBJECT_INVALID",
+                      "message": "AUTH_SUBJECT_INVALID"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/institution/funded-events/{event_id}/badge-allocations": {
+      "post": {
+        "tags": [
+          "Instituicao"
+        ],
+        "summary": "Apply Institution Event Badges",
+        "operationId": "applyInstitutionEventBadges",
+        "security": [
+          {
+            "FirebaseIDToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 21,
+              "maxLength": 37,
+              "pattern": "^IEVT-[A-Z0-9]{16,32}$",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionFundedEventResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Firebase ID token ausente, malformado, expirado, revogado ou inválido.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "bearerAusente": {
+                    "summary": "Cabeçalho Bearer ausente",
+                    "value": {
+                      "code": "AUTH_BEARER_REQUIRED",
+                      "message": "AUTH_BEARER_REQUIRED"
+                    }
+                  },
+                  "bearerInvalido": {
+                    "summary": "Cabeçalho Bearer inválido",
+                    "value": {
+                      "code": "AUTH_BEARER_INVALID",
+                      "message": "AUTH_BEARER_INVALID"
+                    }
+                  },
+                  "tokenInvalido": {
+                    "summary": "Firebase ID token inválido",
+                    "value": {
+                      "code": "AUTH_TOKEN_INVALID",
+                      "message": "AUTH_TOKEN_INVALID"
+                    }
+                  },
+                  "sujeitoInvalido": {
+                    "summary": "Sujeito do token inválido",
+                    "value": {
+                      "code": "AUTH_SUBJECT_INVALID",
+                      "message": "AUTH_SUBJECT_INVALID"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/marketplace/catalog/feed": {
       "get": {
         "tags": [
@@ -13334,6 +13636,81 @@
         ],
         "title": "InstitutionApplicationStatusUpdateRequest"
       },
+      "InstitutionBadgeDistribution": {
+        "properties": {
+          "policy": {
+            "$ref": "#/components/schemas/InstitutionBadgePolicy"
+          },
+          "seller_badges": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "GREEN",
+                "YELLOW",
+                "RED"
+              ]
+            },
+            "type": "object",
+            "title": "Seller Badges"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "policy",
+          "seller_badges"
+        ],
+        "title": "InstitutionBadgeDistribution"
+      },
+      "InstitutionBadgePolicy": {
+        "properties": {
+          "green_percent": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Green Percent"
+          },
+          "yellow_percent": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Yellow Percent"
+          },
+          "red_percent": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Red Percent"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "green_percent",
+          "yellow_percent",
+          "red_percent"
+        ],
+        "title": "InstitutionBadgePolicy"
+      },
+      "InstitutionBadgeUpdateRequest": {
+        "properties": {
+          "support_badge": {
+            "type": "string",
+            "enum": [
+              "GREEN",
+              "YELLOW",
+              "RED"
+            ],
+            "title": "Support Badge"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "support_badge"
+        ],
+        "title": "InstitutionBadgeUpdateRequest"
+      },
       "InstitutionCreateRequest": {
         "properties": {
           "email": {
@@ -13928,6 +14305,16 @@
             "type": "array",
             "maxItems": 100,
             "title": "Seller Allocations"
+          },
+          "badge_distribution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstitutionBadgeDistribution"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -14222,6 +14609,16 @@
               }
             ],
             "title": "Closed At"
+          },
+          "badge_policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstitutionBadgePolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -14390,6 +14787,22 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "support_badge": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "GREEN",
+                  "YELLOW",
+                  "RED"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Badge"
           }
         },
         "additionalProperties": false,

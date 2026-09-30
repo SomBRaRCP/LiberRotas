@@ -16,6 +16,9 @@ def test_institutions_router_preserves_public_contract() -> None:
     routes = _route_contract()
 
     expected = {
+        ("/v1/institution/groups/{group_id}/badge-policy", "PUT", "setInstitutionBadgePolicy"),
+        ("/v1/institution/groups/{group_id}/members/{membership_id}/badge", "PUT", "setInstitutionMemberBadge"),
+        ("/v1/institution/funded-events/{event_id}/badge-allocations", "POST", "applyInstitutionEventBadges"),
         ("/v1/institution/profile", "GET", "getOwnInstitutionProfile"),
         ("/v1/institution/profile", "PATCH", "updateOwnInstitutionProfile"),
         ("/v1/institution/reports/summary", "GET", "getOwnInstitutionReportSummary"),

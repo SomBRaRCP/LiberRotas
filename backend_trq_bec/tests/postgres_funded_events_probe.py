@@ -15,10 +15,11 @@ from psycopg_pool import ConnectionPool
 from trq_bec.server.access_control import default_permissions
 from trq_bec.server.models import (
     AccessAccountRecord,
+    InstitutionBadgePolicy,
     InstitutionFundedEventRecord,
     InstitutionGroupRecord,
 )
-from trq_bec.server.store import PostgresStore, StoreNotFound
+from trq_bec.server.store import PostgresStore, StoreNotFound, StoreConflict
 
 
 def main() -> None:
@@ -186,6 +187,27 @@ def main() -> None:
         }
         if sum(equal.values()) != 1001 or sorted(equal.values()) != [500, 501]:
             raise AssertionError(f"EQUAL_SPLIT_INVALID:{equal}")
+        policy = InstitutionBadgePolicy(green_percent=0, yellow_percent=30, red_percent=70)
+        store.set_institution_badge_policy(institution_uid, group_id, policy, now)
+        saved_group = store.list_institution_groups(institution_uid, 100)[0]
+        assert saved_group.badge_policy == policy
+        for membership_id, badge in (("IGM-FUNDEDPOSTGRES0001", "RED"), ("IGM-FUNDEDPOSTGRES0002", "YELLOW")):
+            member = store.set_institution_member_badge(institution_uid, group_id, membership_id, badge, now)
+            assert member.support_badge == badge
+        applied = store.set_institution_event_seller_allocations(institution_uid, event_id, (), now, by_badges=True)
+        assert {row.seller_uid: row.allocated_amount_minor for row in applied.seller_allocations} == {seller_a: 701, seller_b: 300}
+        assert applied.badge_distribution.policy == policy
+        store.set_institution_member_badge(institution_uid, group_id, "IGM-FUNDEDPOSTGRES0001", "GREEN", now)
+        try:
+            store.set_institution_event_seller_allocations(institution_uid, event_id, (), now, by_badges=True)
+        except StoreConflict as exc:
+            assert str(exc) == "INSTITUTION_BADGE_EMPTY_CATEGORY"
+        else:
+            raise AssertionError("EMPTY_BADGE_CATEGORY_ACCEPTED")
+        persisted = store.list_institution_funded_events(institution_uid, 100)[0]
+        assert persisted.badge_distribution == applied.badge_distribution
+        assert persisted.seller_allocations == applied.seller_allocations
+        print("POSTGRES_SUPPORT_BADGES_PROBE_OK")
         adjusted = store.set_institution_event_seller_allocations(
             institution_uid,
             event_id,
@@ -197,6 +219,7 @@ def main() -> None:
             401,
         ]:
             raise AssertionError("CUSTOM_SELLER_SPLIT_INVALID")
+        assert adjusted.badge_distribution is None
         store.set_institution_event_product_allocations(
             seller_a,
             event_id,

@@ -11,9 +11,12 @@ import {
   StaffSection,
   StaffStatusBadge,
 } from "@/components/staff-panel-ui";
+import { InstitutionBadgePolicyEditor, SupportBadgeLabel, SupportBadgeSelector, SUPPORT_BADGES } from "@/components/institution-support-badges";
+import type { SupportBadge } from "@/features/institutions/api";
 import { AppButton, FormField } from "@/components/ui";
 import { colors, radius } from "@/constants/theme";
 import {
+  setInstitutionMemberBadge,
   inviteInstitutionSeller,
   listInstitutionGroupMemberships,
   removeInstitutionGroupMember,
@@ -36,7 +39,8 @@ function statusTone(status: InstitutionMembership["status"]): "danger" | "neutra
   return "neutral";
 }
 
-export function InstitutionGroupMemberships({ groups }: { groups: InstitutionGroup[] }) {
+export function InstitutionGroupMemberships({ groups, onGroupUpdated }: { groups: InstitutionGroup[]; onGroupUpdated: (group: InstitutionGroup) => void }) {
+  const [classifyingId, setClassifyingId] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [sellerName, setSellerName] = useState("");
   const [memberships, setMemberships] = useState<InstitutionMembership[]>([]);
@@ -82,6 +86,21 @@ export function InstitutionGroupMemberships({ groups }: { groups: InstitutionGro
       requestSequenceRef.current += 1;
     };
   }, [loadMemberships, selectedGroup?.status]);
+
+  async function classify(membership: InstitutionMembership, badge: SupportBadge) {
+    if (classifyingId || membership.support_badge === badge) return;
+    const sequence = requestSequenceRef.current;
+    setClassifyingId(membership.membership_id);
+    setError("");
+    try {
+      const updated = await setInstitutionMemberBadge(membership.group_id, membership.membership_id, badge);
+      if (sequence === requestSequenceRef.current) mergeMembership(updated);
+    } catch (error) {
+      if (sequence === requestSequenceRef.current) setError(getPanelErrorMessage(error, "Não foi possível salvar o selo."));
+    } finally {
+      setClassifyingId(null);
+    }
+  }
 
   function mergeMembership(updated: InstitutionMembership) {
     setMemberships((current) => [
@@ -165,7 +184,9 @@ export function InstitutionGroupMemberships({ groups }: { groups: InstitutionGro
     setSelectedGroupId(groupId);
   }
 
-  const currentMemberships = memberships.filter((item) => item.status === "ACTIVE" || item.status === "PENDING");
+  const priority = (badge: SupportBadge | null) => badge === "RED" ? 0 : badge === "YELLOW" ? 1 : badge === "GREEN" ? 2 : 3;
+  const currentMemberships = memberships.filter((item) => item.status === "ACTIVE" || item.status === "PENDING")
+    .sort((a, b) => priority(a.support_badge) - priority(b.support_badge) || a.seller_name.localeCompare(b.seller_name, "pt-BR"));
   const historyMemberships = memberships.filter((item) => item.status !== "ACTIVE" && item.status !== "PENDING");
 
   return (
@@ -199,6 +220,19 @@ export function InstitutionGroupMemberships({ groups }: { groups: InstitutionGro
               );
             })}
           </View>
+          {selectedGroup ? (
+            <InstitutionBadgePolicyEditor
+              key={`${selectedGroup.group_id}:${selectedGroup.status}:${JSON.stringify(selectedGroup.badge_policy)}`}
+              group={selectedGroup}
+              onUpdated={onGroupUpdated}
+            />
+          ) : null}
+          <View style={styles.groupOptions}>
+            {SUPPORT_BADGES.map((option) => (
+              <StaffStatusBadge key={option.value} tone={option.tone} label={`${option.label}: ${memberships.filter((member) => member.status === "ACTIVE" && member.support_badge === option.value).length}`} />
+            ))}
+            <StaffStatusBadge label={`Sem classificação: ${memberships.filter((member) => member.status === "ACTIVE" && !member.support_badge).length}`} />
+          </View>
           {selectedGroup?.status === "ACTIVE" ? (
             <>
               <FormField
@@ -223,7 +257,7 @@ export function InstitutionGroupMemberships({ groups }: { groups: InstitutionGro
             <StaffMessage>Este grupo está encerrado e não aceita novos convites.</StaffMessage>
           ) : null}
           <AppButton
-            disabled={isLoading || isInviting || Boolean(removingMembershipId)}
+            disabled={isLoading || isInviting || Boolean(removingMembershipId) || Boolean(classifyingId)}
             onPress={loadMemberships}
             variant="secondary"
           >
@@ -239,13 +273,22 @@ export function InstitutionGroupMemberships({ groups }: { groups: InstitutionGro
                 <Text style={styles.memberName}>{membership.seller_name}</Text>
                 <StaffStatusBadge label={STATUS_LABELS[membership.status]} tone={statusTone(membership.status)} />
               </View>
+              {membership.status === "ACTIVE" ? (
+                <>
+                  <SupportBadgeLabel badge={membership.support_badge} />
+                  {selectedGroup?.status === "ACTIVE" ? (
+                    <SupportBadgeSelector badge={membership.support_badge} disabled={Boolean(classifyingId) || Boolean(removingMembershipId) || isLoading} onSelect={(badge) => void classify(membership, badge)} />
+                  ) : null}
+                  {classifyingId === membership.membership_id ? <Text style={styles.meta}>Salvando selo...</Text> : null}
+                </>
+              ) : null}
               <Text style={styles.meta}>Convidado em {formatPanelDate(membership.invited_at)}</Text>
               {membership.active_from ? (
                 <Text style={styles.meta}>Filiado desde {formatPanelDate(membership.active_from)}</Text>
               ) : null}
               {membership.status === "ACTIVE" || membership.status === "PENDING" ? (
                 <AppButton
-                  disabled={Boolean(removingMembershipId) || isInviting}
+                  disabled={Boolean(removingMembershipId) || isInviting || Boolean(classifyingId)}
                   onPress={() => void confirmRemove(membership)}
                   variant="danger"
                 >

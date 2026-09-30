@@ -53,6 +53,9 @@ from .staff_provisioning import (
     StaffProvisioningRollbackError,
 )
 from .models import (
+    InstitutionBadgePolicy,
+    InstitutionBadgeDistribution,
+    InstitutionBadgeUpdateRequest,
     AccessAccountRecord,
     AccessAccountStatusRequest,
     AccountDeviceListResponse,
@@ -2939,6 +2942,7 @@ class CouponSecurityService:
             created_at=group.created_at,
             updated_at=group.updated_at,
             closed_at=group.closed_at,
+            badge_policy=group.badge_policy,
         )
 
     @staticmethod
@@ -2958,6 +2962,7 @@ class CouponSecurityService:
             active_from=membership.active_from,
             ended_at=membership.ended_at,
             updated_at=membership.updated_at,
+            support_badge=membership.support_badge,
         )
 
     @staticmethod
@@ -2977,6 +2982,7 @@ class CouponSecurityService:
             event_id=event.event_id,
             group_id=event.group_id,
             group_name=event.group_name,
+            badge_distribution=event.badge_distribution,
             name=event.name,
             description=event.description,
             funding_source=event.funding_source,
@@ -3562,6 +3568,42 @@ class CouponSecurityService:
             last_group_created_at=summary.last_group_created_at,
             generated_at=datetime.now(timezone.utc),
         )
+
+    def set_institution_badge_policy(
+        self, principal: Principal, group_id: str, policy: InstitutionBadgePolicy,
+    ) -> InstitutionGroupResponse:
+        self._require_role_permission(principal, "institution", "institution.groups.manage", "INSTITUTION_ACCESS_REQUIRED")
+        try:
+            group = self.store.set_institution_badge_policy(principal.uid, group_id, policy, datetime.now(timezone.utc))
+        except StoreNotFound as exc:
+            raise ServiceError(str(exc), 404) from exc
+        except StoreConflict as exc:
+            raise ServiceError(str(exc), 403 if str(exc) == "INSTITUTION_GROUP_ACCESS_REQUIRED" else 409) from exc
+        return self._institution_group_response(group)
+
+    def set_institution_member_badge(
+        self, principal: Principal, group_id: str, membership_id: str, request: InstitutionBadgeUpdateRequest,
+    ) -> InstitutionMembershipResponse:
+        self._require_role_permission(principal, "institution", "institution.groups.manage", "INSTITUTION_ACCESS_REQUIRED")
+        try:
+            member = self.store.set_institution_member_badge(principal.uid, group_id, membership_id, request.support_badge, datetime.now(timezone.utc))
+        except StoreNotFound as exc:
+            raise ServiceError(str(exc), 404) from exc
+        except StoreConflict as exc:
+            raise ServiceError(str(exc), 403 if str(exc) == "INSTITUTION_GROUP_ACCESS_REQUIRED" else 409) from exc
+        return self._institution_membership_response(member)
+
+    def apply_institution_event_badges(
+        self, principal: Principal, event_id: str,
+    ) -> InstitutionFundedEventResponse:
+        self._require_role_permission(principal, "institution", "institution.events.manage", "INSTITUTION_ACCESS_REQUIRED")
+        try:
+            event = self.store.set_institution_event_seller_allocations(principal.uid, event_id, (), datetime.now(timezone.utc), by_badges=True)
+        except StoreNotFound as exc:
+            raise ServiceError(str(exc), 404) from exc
+        except StoreConflict as exc:
+            raise ServiceError(str(exc), 403 if str(exc) == "INSTITUTION_EVENT_ACCESS_REQUIRED" else 409) from exc
+        return self._institution_funded_event_response(event)
 
     def create_institution_group(
         self,

@@ -384,7 +384,7 @@ function InstitutionGroupsContent() {
           </StaffRecordCard>
         ))}
       </StaffSection>
-      <InstitutionGroupMemberships groups={groups} />
+      <InstitutionGroupMemberships groups={groups} onGroupUpdated={(updated) => setGroups((current) => current.map((group) => group.group_id === updated.group_id ? updated : group))} />
     </>
   );
 }
