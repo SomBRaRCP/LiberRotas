@@ -7,12 +7,14 @@ import { LocalClock } from "@/components/local-clock";
 import { MediaImagePicker } from "@/components/media-image-picker";
 import { PaginationControls } from "@/components/pagination-controls";
 import { PublicEntityMediaImage } from "@/components/public-entity-media-image";
+import { SaleQrModal } from "@/components/sale-qr-modal";
 import { showStaffAlert } from "@/components/staff-panel-ui";
 import { AppButton, FormField, LoadingScreen } from "@/components/ui";
 import { colors, radius, shadow } from "@/constants/theme";
 import { useProfileState, useSessionState } from "@/context/app-context";
 import { useTrustedClock } from "@/context/trusted-clock-context";
 import type {
+  CouponQrResult,
   LiveOfferBatchUpdateInput,
   MarketplaceProduct,
   OfferDiscountType,
@@ -25,6 +27,7 @@ import {
   createClientMessageId,
   createMarketplaceProduct,
   getTrqBecApiUrl,
+  getOwnLiveOfferQr,
   issueLiveOffer,
   listOwnLiveOffers,
   listOwnMarketplaceProducts,
@@ -94,7 +97,7 @@ function defaultOfferDraft(product: MarketplaceProduct): OfferDraft {
  * Gestão comercial mínima da Fase 1.
  *
  * Produto, preço, estoque, desconto e disponibilidade vêm do backend. O app
- * apenas envia comandos. O QR protegido fica disponível na Vitrine do perfil.
+ * apenas envia comandos e exibe o QR retornado pelo backend para cada venda.
  */
 export default function GenerateQrScreen() {
   const {
@@ -115,6 +118,9 @@ export default function GenerateQrScreen() {
     && hasPermission("marketplace.manage");
   const [products, setProducts] = useState<MarketplaceProduct[]>([]);
   const [offers, setOffers] = useState<OfferPreview[]>([]);
+  const [qrQuantityTexts, setQrQuantityTexts] = useState<Record<string, string>>({});
+  const [qrResult, setQrResult] = useState<CouponQrResult | null>(null);
+  const [generatingQrOfferId, setGeneratingQrOfferId] = useState("");
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [selectedOfferProductIds, setSelectedOfferProductIds] = useState<string[]>([]);
   const [offerDrafts, setOfferDrafts] = useState<Record<string, OfferDraft>>({});
@@ -412,17 +418,19 @@ export default function GenerateQrScreen() {
     setIsSaving(true);
     setActionError(null);
     const issuedProductIds: string[] = [];
+    const issuedQrs: CouponQrResult[] = [];
     const failures: { product: MarketplaceProduct; error: unknown }[] = [];
     try {
       for (const prepared of preparedOffers) {
         try {
-          await issueLiveOffer({
+          const issuedQr = await issueLiveOffer({
             productId: prepared.product.product_id,
             discountType: prepared.draft.discountType,
             discountValue: prepared.discount,
             maximumRedemptions: prepared.maximumRedemptions,
             validUntil: new Date(nowMs + prepared.validityHours * 60 * 60_000).toISOString(),
           });
+          issuedQrs.push(issuedQr);
           issuedProductIds.push(prepared.product.product_id);
         } catch (error) {
           failures.push({ product: prepared.product, error });
@@ -433,9 +441,10 @@ export default function GenerateQrScreen() {
       setSelectedOfferProductIds((current) => current.filter((productId) => !issuedProductIds.includes(productId)));
       await loadMarketplace();
       if (issuedProductIds.length > 0) {
-        showStaffAlert(
+        if (issuedQrs.length === 1 && failures.length === 0) setQrResult(issuedQrs[0]);
+        else showStaffAlert(
           issuedProductIds.length === 1 ? "Oferta emitida" : "Ofertas emitidas",
-          `${issuedProductIds.length} oferta(s) foram publicadas. Para exibir o QR, abra Perfil > Vitrine > Ofertas.`,
+          `${issuedProductIds.length} oferta(s) foram publicadas. Use Gerar QR para venda em Ofertas emitidas.`,
         );
       }
       if (failures.length > 0) {
@@ -452,6 +461,37 @@ export default function GenerateQrScreen() {
         );
       }
     } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function generateSaleQr(offer: OfferPreview) {
+    if (isSaving || !canManageMarketplace) return;
+    const quantity = Number(qrQuantityTexts[offer.offer_id] ?? "1");
+    const maximum = Math.min(offer.remaining_redemptions, 1_000);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > maximum) {
+      showStaffAlert("Revise a quantidade", `Informe entre 1 e ${maximum} unidade(s) para esta venda.`);
+      return;
+    }
+    setIsSaving(true);
+    setGeneratingQrOfferId(offer.offer_id);
+    setActionError(null);
+    try {
+      const result = await getOwnLiveOfferQr(offer.offer_id, quantity);
+      if (result.offer.status !== "ACTIVE") {
+        throw new Error("Reative a oferta antes de gerar o QR para vender.");
+      }
+      setQrResult(result);
+    } catch (error) {
+      const message = errorMessage(error);
+      setActionError({
+        message,
+        requiresRecentLogin: error instanceof TrqBecServiceError && error.code === "RECENT_AUTHENTICATION_REQUIRED",
+      });
+      showStaffAlert("QR não gerado", message);
+      await loadMarketplace();
+    } finally {
+      setGeneratingQrOfferId("");
       setIsSaving(false);
     }
   }
@@ -925,7 +965,7 @@ export default function GenerateQrScreen() {
             Selecione um ou mais produtos. Cada cupom começa com todo o estoque registrado e validade sugerida de 8 horas.
           </Text>
           <Text style={styles.hint}>
-            O QR não é exibido nesta página. Depois da emissão, acesse Perfil &gt; Vitrine &gt; Ofertas para gerar o QR.
+            Ao emitir uma única oferta, o QR abre nesta tela. Para novas vendas, escolha a quantidade em Ofertas emitidas e toque em Gerar QR para venda.
           </Text>
           {issuableProducts.length > 0 ? (
             <View style={styles.batchButtonGrid}>
@@ -1033,7 +1073,7 @@ export default function GenerateQrScreen() {
           </AppButton>
           {actionError ? (
             <View style={styles.errorCard}>
-              <Text style={styles.errorTitle}>Nem todas as ofertas foram emitidas</Text>
+              <Text style={styles.errorTitle}>Não foi possível concluir a ação</Text>
               <Text style={styles.errorText}>{actionError.message}</Text>
               {actionError.requiresRecentLogin ? (
                 <AppButton onPress={restartAuthentication} variant="secondary">Sair e entrar novamente</AppButton>
@@ -1059,6 +1099,7 @@ export default function GenerateQrScreen() {
             const timeEnded = hasTimeEnded(offer.expires_at * 1_000, nowMs);
             const canSelectForBatch = !timeEnded && (offer.status === "ACTIVE" || offer.status === "PAUSED");
             const selectedForBatch = selectedOfferIds.includes(offer.offer_id);
+            const canGenerateQr = !timeEnded && offer.status === "ACTIVE" && offer.remaining_redemptions > 0;
             return (
               <View key={offer.offer_id} style={[styles.offerCard, selectedForBatch && styles.batchSelected]}>
                 <View style={styles.selectionRow}>
@@ -1092,7 +1133,32 @@ export default function GenerateQrScreen() {
                 {!timeEnded && (offer.status === "ACTIVE" || offer.status === "PAUSED") ? (
                   <Text style={styles.hint}>Tempo restante {formatRemainingTime(offer.expires_at * 1_000, nowMs)}</Text>
                 ) : null}
+                {canGenerateQr ? (
+                  <FormField
+                    accessibilityLabel={`Quantidade para vender ${offer.product_title}`}
+                    editable={!isSaving}
+                    keyboardType="number-pad"
+                    label="Quantidade para esta venda"
+                    maxLength={4}
+                    onChangeText={(value) => setQrQuantityTexts((current) => ({
+                      ...current, [offer.offer_id]: value.replace(/\D/g, ""),
+                    }))}
+                    value={qrQuantityTexts[offer.offer_id] ?? "1"}
+                  />
+                ) : null}
+                {!timeEnded && offer.status === "PAUSED" ? (
+                  <Text style={styles.hint}>Reative a oferta para gerar o QR para venda.</Text>
+                ) : null}
                 <View style={styles.actionRow}>
+                  {canGenerateQr ? (
+                    <AppButton
+                      accessibilityLabel={`Gerar QR para vender ${offer.product_title}`}
+                      disabled={isSaving}
+                      onPress={() => void generateSaleQr(offer)}
+                    >
+                      {generatingQrOfferId === offer.offer_id ? "Gerando QR..." : "Gerar QR para venda"}
+                    </AppButton>
+                  ) : null}
                   <AppButton
                     accessibilityLabel={`Compartilhar oferta ${offer.product_title}`}
                     onPress={() => void shareLiberRotasItem({
@@ -1156,6 +1222,8 @@ export default function GenerateQrScreen() {
           ) : null}
         </View>
       </ScrollView>
+
+      <SaleQrModal result={qrResult} nowMs={nowMs} onChange={setQrResult} onInventoryChanged={loadMarketplace} />
 
       <Modal
         animationType="fade"

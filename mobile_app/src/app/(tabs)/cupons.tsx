@@ -4,6 +4,8 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandHeader } from "@/components/brand-header";
+import { EntrepreneurCoupons } from "@/components/entrepreneur-coupons";
+import { VisitorPurchases } from "@/components/visitor-purchases";
 import { AppButton } from "@/components/ui";
 import { colors, radius } from "@/constants/theme";
 import { useApp } from "@/context/app-context";
@@ -58,9 +60,10 @@ function offerStatusLabel(offer: CatalogOfferSummary, referenceTimeMs: number) {
  * o resgate continua sendo iniciado pelo leitor de QR Code.
  */
 export default function CouponsScreen() {
-  const { accessSession, hasPermission } = useApp();
+  const { accessSession, hasPermission, profile } = useApp();
   const { nowMs } = useTrustedClock();
-  const isEntrepreneur = accessSession?.role === "entrepreneur" && hasPermission("marketplace.manage");
+  const isEntrepreneur = accessSession?.role === "entrepreneur";
+  const canManageMarketplace = isEntrepreneur && hasPermission("marketplace.manage");
   const canRedeemCoupons = accessSession?.role === "visitor" && hasPermission("coupons.redeem");
   const [catalogItems, setCatalogItems] = useState<CatalogProductItem[] | null>(null);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
@@ -68,6 +71,7 @@ export default function CouponsScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (isEntrepreneur) return undefined;
       let isActive = true;
       setIsLoadingCatalog(true);
       setCatalogError("");
@@ -87,7 +91,7 @@ export default function CouponsScreen() {
       return () => {
         isActive = false;
       };
-    }, []),
+    }, [isEntrepreneur]),
   );
 
   const publicOffers = useMemo<PublicOfferItem[]>(
@@ -108,11 +112,21 @@ export default function CouponsScreen() {
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <BrandHeader subtitle="benefícios locais" title="Cupons" />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.heading}>{isEntrepreneur ? "Gestão e ofertas ao vivo" : "Ofertas ao vivo"}</Text>
+        <Text style={styles.heading}>{isEntrepreneur ? "Gestão e ofertas ao vivo" : canRedeemCoupons ? "Minhas compras e ofertas" : "Ofertas ao vivo"}</Text>
         <Text style={styles.lead}>
-          Consulte ofertas ativas, pausadas e encerradas. Somente ofertas ativas podem ser resgatadas pelo leitor de QR.
+          {isEntrepreneur
+            ? "Gere o QR das suas ofertas, incluindo produtos com verba promocional da instituição parceira. Somente ofertas ativas com estoque podem ser vendidas."
+            : "Consulte ofertas ativas, pausadas e encerradas. Somente ofertas ativas podem ser resgatadas pelo leitor de QR."}
         </Text>
 
+        {canRedeemCoupons ? <VisitorPurchases key={profile.id} /> : null}
+        {isEntrepreneur ? (
+          <>
+            <Text style={styles.sectionTitle}>Minhas ofertas e QR para venda</Text>
+            {canManageMarketplace ? <EntrepreneurCoupons key={profile.id} /> : <Text style={styles.errorText}>Sua conta ainda não tem permissão para gerenciar ofertas.</Text>}
+          </>
+        ) : null}
+        {!isEntrepreneur ? <>
         <Text style={styles.sectionTitle}>Ofertas publicadas</Text>
         {isLoadingCatalog ? <Text style={styles.statusText}>Atualizando catálogo...</Text> : null}
         {catalogError ? <Text style={styles.errorText}>{catalogError}</Text> : null}
@@ -183,8 +197,9 @@ export default function CouponsScreen() {
         {catalogItems !== null && publicOffers.length === 0 && !isLoadingCatalog ? (
           <Text style={styles.emptyText}>Nenhuma oferta pública foi encontrada.</Text>
         ) : null}
+        </> : null}
 
-        {isEntrepreneur ? (
+        {canManageMarketplace ? (
           <>
             <View style={styles.generateCard}>
               <View style={styles.generateIcon}><Ionicons color={colors.surface} name="qr-code-outline" size={28} /></View>

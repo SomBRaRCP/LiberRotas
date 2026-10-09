@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from ..auth import require_principal
 from ..docs import (
@@ -30,6 +30,7 @@ from ..models import (
     OfferPreviewResponse,
     PreviewCouponRequest,
     Principal,
+    VisitorPurchasesResponse,
 )
 from ..service import CouponSecurityService
 
@@ -39,6 +40,24 @@ router = APIRouter()
 
 def _service(request: Request) -> CouponSecurityService:
     return request.app.state.service
+
+
+@router.get(
+    "/v1/trq-bec/coupons/purchases/mine",
+    response_model=VisitorPurchasesResponse,
+    tags=["Cupons"],
+    summary="Consultar minhas compras confirmadas",
+    description="Histórico privado do visitante autenticado, com gastos e economia por moeda. Os totais abrangem todas as páginas e usam os valores registrados no resgate.",
+    operation_id="getOwnVisitorPurchases",
+    responses={**AUTHENTICATION_RESPONSE, **BEGIN_FORBIDDEN_RESPONSE},
+)
+def get_visitor_purchases(
+    request: Request,
+    limit: int = Query(default=20, ge=1, le=50),
+    offset: int = Query(default=0, ge=0, le=1_000_000),
+    principal: Principal = Depends(require_principal),
+) -> VisitorPurchasesResponse:
+    return _service(request).get_visitor_purchases(principal, limit, offset)
 
 
 @router.post(

@@ -1266,6 +1266,7 @@ export const getPublicMerchantCatalog = marketplaceApi.getPublicMerchantCatalog;
 export const listOwnLiveOffers = marketplaceApi.listOwnLiveOffers;
 export const listOwnMarketplaceProducts = marketplaceApi.listOwnMarketplaceProducts;
 export const listPublicCatalogFeed = marketplaceApi.listPublicCatalogFeed;
+export const loadOwnPurchases = marketplaceApi.loadOwnPurchases;
 export const updateLiveOfferStatus = marketplaceApi.updateLiveOfferStatus;
 export const updateMarketplaceProductStock = marketplaceApi.updateMarketplaceProductStock;
 

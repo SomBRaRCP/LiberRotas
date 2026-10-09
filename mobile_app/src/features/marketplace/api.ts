@@ -1,4 +1,5 @@
 import type { AuthenticatedRequest } from "@/api/http-client";
+import type { VisitorPurchasesReport } from "./purchases";
 import type {
   CatalogFeedResponse,
   CatalogMerchantResponse,
@@ -37,6 +38,10 @@ type MarketplaceApiOptions = {
 
 export function createMarketplaceApi(options: MarketplaceApiOptions) {
   const { requestAuthenticated } = options;
+
+  function loadOwnPurchases(offset = 0): Promise<VisitorPurchasesReport> {
+    return requestAuthenticated("GET", `/v1/trq-bec/coupons/purchases/mine?limit=20&offset=${offset}`);
+  }
 
   function createMarketplaceProduct(input: CreateProductInput): Promise<MarketplaceProduct> {
     return requestAuthenticated("POST", "/v1/marketplace/products", {
@@ -169,6 +174,7 @@ export function createMarketplaceApi(options: MarketplaceApiOptions) {
     listOwnLiveOffers,
     listOwnMarketplaceProducts,
     listPublicCatalogFeed,
+    loadOwnPurchases,
     updateLiveOfferStatus,
     updateMarketplaceProductStock,
   };

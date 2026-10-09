@@ -96,6 +96,9 @@ def test_badges_authorization_validation_distribution_and_snapshot(api):
     event = applied.json()
     assert {s["seller_uid"]: s["allocated_amount_minor"] for s in event["seller_allocations"]} == {"entre-uid": 7001, "entre-other-uid": 3000}
     assert event["badge_distribution"]["policy"] == policy
+    seller_events = api.client.get("/v1/entrepreneur/funded-events", headers=seller_headers)
+    assert seller_events.status_code == 200, seller_events.text
+    assert seller_events.json()["events"][0]["group_id"] == group["group_id"]
 
     # Reclassificar não reescreve uma distribuição já aplicada; falhas são atômicas.
     assert api.client.put(memberships[0][1], headers=owner, json={"support_badge": "GREEN"}).status_code == 200

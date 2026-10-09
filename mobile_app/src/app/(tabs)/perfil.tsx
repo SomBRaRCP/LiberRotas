@@ -41,6 +41,7 @@ export default function ProfileScreen() {
   const { accessSession, deleteAccount, hasPermission, logout, profile, updateProfile } = useApp();
   const canManageProfile = hasPermission("profile.manage");
   const isEntrepreneur = accessSession?.role === "entrepreneur";
+  const canManageMarketplace = isEntrepreneur && hasPermission("marketplace.manage");
   const canManagePrivatePix = isEntrepreneur && canManageProfile;
   const [name, setName] = useState(profile.name);
   const [email, setEmail] = useState(profile.email);
@@ -323,9 +324,14 @@ export default function ProfileScreen() {
             </Text>
             <Text style={styles.roleCardText}>
               {isEntrepreneur
-                ? "Divulgue sua atividade, acompanhe cupons e mantenha os dados públicos da sua vitrine atualizados."
+                ? "Cadastre produtos, publique ofertas e gere o QR Code para o visitante confirmar a compra."
                 : "Salve feiras, organize seus interesses e encontre benefícios oferecidos pelos empreendedores locais."}
             </Text>
+            {canManageMarketplace ? (
+              <AppButton onPress={() => router.push("/generate-qr")}>
+                Produtos, ofertas e QR para vender
+              </AppButton>
+            ) : null}
             <Pressable accessibilityRole="button" onPress={openSupportContact} style={styles.supportButton}>
               <Ionicons color={colors.surface} name="help-buoy-outline" size={19} />
               <View style={styles.supportButtonTextGroup}>

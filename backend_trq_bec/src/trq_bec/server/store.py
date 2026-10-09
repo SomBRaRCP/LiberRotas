@@ -446,6 +446,7 @@ class DurableStore(Protocol):
     def get_offer_by_token(self, token_ref: str) -> OfferRecord | None: ...
     def expire_offer(self, token_ref: str, **audit: Any) -> None: ...
     def list_offers(self, uid: str) -> list[OfferRecord]: ...
+    def get_visitor_purchases(self, uid: str, limit: int, offset: int) -> dict[str, Any]: ...
     def revoke_offer(self, uid: str, offer_id: str, **audit: Any) -> OfferRecord: ...
     def get_offers_for_batch(
         self, uid: str, offer_ids: tuple[str, ...]
@@ -5145,6 +5146,49 @@ class PostgresStore:
                 (uid,),
             ).fetchall()
         return [self._offer(row) for row in rows]
+
+    def get_visitor_purchases(self, uid: str, limit: int, offset: int) -> dict[str, Any]:
+        with self.pool.connection() as conn, conn.transaction():
+            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            totals = conn.execute(
+                """
+                SELECT currency, COUNT(*)::INTEGER AS purchase_count,
+                       COALESCE(SUM(quantity), 0)::BIGINT AS units_purchased,
+                       COALESCE(SUM(final_amount_minor), 0)::BIGINT AS spent_amount_minor,
+                       COALESCE(SUM(amount_saved_minor), 0)::BIGINT AS saved_amount_minor,
+                       COUNT(*) FILTER (WHERE final_amount_minor IS NULL)::INTEGER
+                           AS amounts_unavailable_count
+                  FROM coupon_redemptions
+                 WHERE buyer_uid = %s AND status = 'REDEEMED'
+                 GROUP BY currency ORDER BY currency
+                """,
+                (uid,),
+            ).fetchall()
+            items = conn.execute(
+                """
+                SELECT r.redemption_id::TEXT, r.merchant_uid,
+                       COALESCE(m.display_name, 'Empreendedor') AS merchant_name,
+                       m.establishment_name, r.product_id,
+                       COALESCE(p.title, 'Produto indisponível') AS product_title,
+                       r.quantity, r.currency, r.original_amount_minor, r.final_amount_minor,
+                       r.amount_saved_minor AS saved_amount_minor,
+                       r.committed_at AS purchased_at
+                  FROM coupon_redemptions r
+                  LEFT JOIN merchant_accounts m ON m.firebase_uid = r.merchant_uid
+                  LEFT JOIN products p ON p.product_id = r.product_id
+                 WHERE r.buyer_uid = %s AND r.status = 'REDEEMED'
+                 ORDER BY r.committed_at DESC, r.redemption_id DESC
+                 LIMIT %s OFFSET %s
+                """,
+                (uid, limit, offset),
+            ).fetchall()
+        total_purchases = sum(row["purchase_count"] for row in totals)
+        return {
+            "total_purchases": total_purchases,
+            "total_units": sum(row["units_purchased"] for row in totals),
+            "totals": totals, "items": items, "limit": limit, "offset": offset,
+            "has_more": offset + len(items) < total_purchases,
+        }
 
     def revoke_offer(self, uid: str, offer_id: str, **audit: Any) -> OfferRecord:
         with self.pool.connection() as conn, conn.transaction():

@@ -117,6 +117,7 @@ export type InstitutionFundedEvent = {
 
 export type EntrepreneurFundedEvent = {
   event_id: string;
+  group_id: string;
   institution_name: string;
   group_name: string;
   name: string;

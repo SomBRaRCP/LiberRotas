@@ -32,6 +32,7 @@ def test_marketplace_router_preserves_public_contract() -> None:
 
 def test_coupons_router_preserves_public_contract() -> None:
     assert _route_contract(coupons_router) == {
+        ("/v1/trq-bec/coupons/purchases/mine", "GET", "getOwnVisitorPurchases"),
         ("/v1/trq-bec/coupons/issue", "POST", "issueCoupon"),
         ("/v1/trq-bec/coupons/preview", "POST", "previewCouponOffer"),
         ("/v1/trq-bec/coupons/redeem/begin", "POST", "beginCouponRedemption"),
@@ -41,6 +42,7 @@ def test_coupons_router_preserves_public_contract() -> None:
 
 def test_marketplace_and_coupons_routers_are_present_in_public_openapi() -> None:
     schema = app.openapi()
+    assert schema["paths"]["/v1/trq-bec/coupons/purchases/mine"]["get"]["operationId"] == "getOwnVisitorPurchases"
 
     assert schema["paths"]["/v1/marketplace/products"]["post"]["operationId"] == (
         "createMarketplaceProduct"

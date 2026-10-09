@@ -150,7 +150,8 @@ Visitante e Empreendedor são as únicas opções do cadastro público. O tipo e
 - seleção múltipla de ofertas para excluir, aumentar o desconto ou ampliar o tempo de validade;
 - ofertas emitidas paginadas em blocos de até 20 itens;
 - `client_request_id` estável durante novas tentativas do mesmo lote, impedindo aplicar desconto ou tempo duas vezes;
-- QR Code com referência opaca emitida pelo backend TRQ-BEC e exibida somente na Vitrine do perfil do empreendedor;
+- QR Code com referência opaca emitida pelo backend TRQ-BEC, disponível na aba Cupons do vendedor, no gerenciador de ofertas e na Vitrine;
+- aba Cupons do vendedor consulta somente suas ofertas privadas; identifica apoio de instituições com filiação ativa e verba para o produto, mostrando saldo a receber e unidades vendidas conforme os relatórios do backend;
 - contador de quantidade por oferta, iniciado em `1`, limitado pelo estoque e protegido por assinatura do backend;
 - seleção de 2 a 5 ofertas para gerar um único QR combinado, mantendo cada cupom e desconto independentes;
 - prévia de quantidade, preço unitário, total, desconto, validade e saldo antes do resgate;
@@ -487,9 +488,9 @@ build remota quando precisar validar iOS.
 7. Em Mapa, filtre pontos de Pinhais, abra uma rota no Google Maps e salve locais na sua rota.
 8. Em Perfil, confira a interface correspondente ao tipo de conta, troque a foto, edite os dados e pressione **Salvar perfil**.
 9. Como Empreendedor aprovado, abra **Cupons > Gerenciar produtos e ofertas**, cadastre ou ative produtos com estoque e emita as ofertas.
-10. Abra **Perfil > Vitrine > Ofertas**, escolha a quantidade de cada produto e gere um QR individual ou selecione de 2 a 5 ofertas para gerar um QR combinado.
+10. Na aba **Cupons**, escolha a quantidade e toque na própria oferta para abrir o QR. A Vitrine continua permitindo QR individual e combinado de 2 a 5 ofertas.
 11. Em outro aparelho, entre como Visitante, leia o QR, confira quantidades e totais e confirme o resgate.
-12. Confira o fechamento automático do QR do vendedor e os números atualizados de vendidos e estoque.
+12. Confira o fechamento automático do QR do vendedor e os números atualizados de vendidos e estoque. Para produtos com benefício institucional, confira também o saldo a receber e as unidades vendidas com benefício. Abrir o QR não baixa estoque; a confirmação do visitante realiza a baixa no backend.
 13. Use a busca global do Feed para encontrar um perfil, produto ou publicação e abra o resultado.
 14. No perfil público, envie uma mensagem; na outra conta, abra **Mensagens** e teste a opção de bloqueio.
 15. No próprio Perfil, abra **Entrar em contato com o SUPORTE** e confira o chamado na conta de Suporte.

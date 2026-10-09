@@ -403,6 +403,7 @@ class InstitutionFundedEventListResponse(StrictModel):
 
 class EntrepreneurFundedEventResponse(StrictModel):
     event_id: str
+    group_id: str
     institution_name: str
     group_name: str
     name: str
@@ -1280,6 +1281,40 @@ class CatalogFeedResponse(StrictModel):
         max_length=50,
         description="Produtos públicos ordenados dos mais recentes para os mais antigos.",
     )
+
+
+class PurchaseCurrencyTotalResponse(StrictModel):
+    currency: str
+    purchase_count: int = Field(ge=0)
+    units_purchased: int = Field(ge=0)
+    spent_amount_minor: int = Field(ge=0)
+    saved_amount_minor: int = Field(ge=0)
+    amounts_unavailable_count: int = Field(ge=0)
+
+
+class VisitorPurchaseResponse(StrictModel):
+    redemption_id: str
+    merchant_uid: str
+    merchant_name: str
+    establishment_name: str | None
+    product_id: str
+    product_title: str
+    quantity: int = Field(ge=1)
+    currency: str
+    original_amount_minor: int | None = Field(default=None, ge=0)
+    final_amount_minor: int | None = Field(default=None, ge=0)
+    saved_amount_minor: int = Field(ge=0)
+    purchased_at: datetime
+
+
+class VisitorPurchasesResponse(StrictModel):
+    total_purchases: int = Field(ge=0)
+    total_units: int = Field(ge=0)
+    totals: list[PurchaseCurrencyTotalResponse]
+    items: list[VisitorPurchaseResponse]
+    limit: int = Field(ge=1, le=50)
+    offset: int = Field(ge=0)
+    has_more: bool
 
 
 class CatalogMerchantProfileResponse(StrictModel):

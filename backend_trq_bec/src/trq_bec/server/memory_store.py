@@ -3652,6 +3652,46 @@ class MemoryDurableStore:
                 self.tokens[token_ref] = token
                 raise
 
+    def get_visitor_purchases(self, uid: str, limit: int, offset: int) -> dict[str, Any]:
+        with self._lock:
+            purchases = [
+                row for (_, buyer_uid), row in self.redemptions.items()
+                if buyer_uid == uid and row["status"] == "REDEEMED"
+            ]
+            purchases.sort(key=lambda row: (row["committed_at"], row["redemption_id"]), reverse=True)
+            totals: dict[str, dict[str, Any]] = {}
+            for row in purchases:
+                total = totals.setdefault(row["currency"], {
+                    "currency": row["currency"], "purchase_count": 0, "units_purchased": 0,
+                    "spent_amount_minor": 0, "saved_amount_minor": 0, "amounts_unavailable_count": 0,
+                })
+                total["purchase_count"] += 1
+                total["units_purchased"] += row["quantity"]
+                total["spent_amount_minor"] += row["final_amount_minor"] or 0
+                total["saved_amount_minor"] += row["amount_saved_minor"]
+                total["amounts_unavailable_count"] += int(row["final_amount_minor"] is None)
+            items = []
+            for row in purchases[offset:offset + limit]:
+                merchant = self.merchants.get(row["merchant_uid"])
+                product = self.products.get(row["product_id"])
+                items.append({
+                    "redemption_id": row["redemption_id"], "merchant_uid": row["merchant_uid"],
+                    "merchant_name": merchant.display_name if merchant else "Empreendedor",
+                    "establishment_name": merchant.establishment_name if merchant else None,
+                    "product_id": row["product_id"],
+                    "product_title": product.title if product else "Produto indisponível",
+                    "quantity": row["quantity"], "currency": row["currency"],
+                    "original_amount_minor": row["original_amount_minor"],
+                    "final_amount_minor": row["final_amount_minor"],
+                    "saved_amount_minor": row["amount_saved_minor"], "purchased_at": row["committed_at"],
+                })
+            return {
+                "total_purchases": len(purchases),
+                "total_units": sum(row["quantity"] for row in purchases),
+                "totals": [totals[currency] for currency in sorted(totals)], "items": items,
+                "limit": limit, "offset": offset, "has_more": offset + len(items) < len(purchases),
+            }
+
     def list_offers(self, uid: str):
         with self._lock:
             return [

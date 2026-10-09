@@ -71,6 +71,7 @@ from .models import (
     BeginRedemptionRequest,
     BeginRedemptionResponse,
     CatalogFeedResponse,
+    VisitorPurchasesResponse,
     CatalogMerchantProfileResponse,
     CatalogMerchantRecord,
     CatalogMerchantSummary,
@@ -2903,6 +2904,12 @@ class CouponSecurityService:
             and auth_age <= self.settings.device_enrollment_max_auth_age_seconds
         )
 
+    def get_visitor_purchases(self, principal: Principal, limit: int, offset: int) -> VisitorPurchasesResponse:
+        self._require_role_permission(principal, "visitor", "coupons.redeem", "VISITOR_CLAIM_REQUIRED")
+        return VisitorPurchasesResponse.model_validate(
+            self.store.get_visitor_purchases(principal.uid, limit, offset)
+        )
+
     def _require_role_permission(
         self,
         principal: Principal,
@@ -3040,6 +3047,7 @@ class CouponSecurityService:
             raise ServiceError("INSTITUTION_FUNDED_EVENT_NOT_FOUND", 404)
         return EntrepreneurFundedEventResponse(
             event_id=event.event_id,
+            group_id=event.group_id,
             institution_name=event.institution_name,
             group_name=event.group_name,
             name=event.name,
