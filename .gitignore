@@ -1,5 +1,10 @@
 # Ferramentas locais
-.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/liberrotas/
+.agents/skills/liberrotas/*
+!.agents/skills/liberrotas/SKILL.md
 .codex/
 .codex_tmp/
 
