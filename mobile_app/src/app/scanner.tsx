@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LocalClock } from "@/components/local-clock";
+import { HeaderBackButton } from "@/components/header-back-button";
 import { AppButton, LoadingScreen } from "@/components/ui";
 import { colors, radius } from "@/constants/theme";
 import { useApp } from "@/context/app-context";
@@ -86,7 +87,10 @@ export default function ScannerScreen() {
         <Text style={styles.permissionTitle}>A câmera é necessária</Text>
         <Text style={styles.message}>Permita o acesso para ler o QR Code das ofertas LiberRotas.</Text>
         <AppButton onPress={requestPermission} style={styles.permissionButton}>Permitir acesso</AppButton>
-        <AppButton onPress={() => router.replace(profileDestination)} variant="secondary">Perfil</AppButton>
+        <View style={styles.navigationButtons}>
+          <HeaderBackButton fallbackHref={profileDestination} />
+          <AppButton onPress={() => router.replace(profileDestination)} variant="secondary">Perfil</AppButton>
+        </View>
       </SafeAreaView>
     );
   }
@@ -201,6 +205,7 @@ export default function ScannerScreen() {
       />
       <SafeAreaView style={styles.overlay}>
         <View style={styles.topBar}>
+          <HeaderBackButton disabled={redemptionPhase === "AUTHORIZING"} fallbackHref={profileDestination} />
           <Pressable
             accessibilityLabel="Abrir meu perfil"
             disabled={redemptionPhase === "AUTHORIZING"}
@@ -254,7 +259,10 @@ export default function ScannerScreen() {
                   </Text>
                 </View>
               ) : null}
-              <AppButton onPress={() => router.replace(profileDestination)} style={styles.completedButton}>Perfil</AppButton>
+              <View style={styles.navigationButtons}>
+                <HeaderBackButton fallbackHref={profileDestination} />
+                <AppButton onPress={() => router.replace(profileDestination)}>Perfil</AppButton>
+              </View>
             </View>
           ) : scannedData ? (
             <>
@@ -341,11 +349,11 @@ const styles = StyleSheet.create({
   message: { color: colors.textMuted, fontSize: 14, lineHeight: 20, marginTop: 10, textAlign: "center" },
   permissionButton: { marginTop: 24, width: "100%" },
   overlay: { flex: 1, justifyContent: "space-between" },
-  topBar: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", padding: 18 },
+  topBar: { alignItems: "center", flexDirection: "row", gap: 8, padding: 18 },
   closeButton: { alignItems: "center", backgroundColor: colors.surface, borderRadius: 22, flexDirection: "row", gap: 5, minHeight: 44, paddingHorizontal: 10 },
   closeButtonText: { color: colors.primaryDark, fontSize: 11, fontWeight: "900" },
   disabledControl: { opacity: 0.45 },
-  title: { color: colors.surface, fontSize: 18, fontWeight: "800" },
+  title: { color: colors.surface, flex: 1, fontSize: 18, fontWeight: "800" },
   guideArea: { alignItems: "center" },
   guideText: { color: colors.surface, fontSize: 14, fontWeight: "700", marginBottom: 18 },
   frame: { borderColor: colors.accent, borderRadius: radius.large, borderWidth: 4, height: 220, width: 220 },
@@ -375,6 +383,6 @@ const styles = StyleSheet.create({
   partialWarning: { backgroundColor: "#FFF4DC", borderColor: colors.accent, borderRadius: radius.medium, borderWidth: 1, padding: 12, width: "100%" },
   partialWarningTitle: { color: colors.primaryDark, fontSize: 13, fontWeight: "900" },
   partialWarningText: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 4 },
-  completedButton: { marginTop: 8, width: "100%" },
+  navigationButtons: { alignItems: "center", flexDirection: "row", gap: 10, marginTop: 8 },
   waiting: { color: colors.textMuted, fontSize: 14, textAlign: "center" },
 });

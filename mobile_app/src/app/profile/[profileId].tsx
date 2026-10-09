@@ -7,6 +7,7 @@ import { KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, 
 import QRCode from "react-native-qrcode-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ImageViewerModal } from "@/components/image-viewer-modal";
+import { HeaderBackButton } from "@/components/header-back-button";
 import { PostComments } from "@/components/post-comments";
 import { ProtectedMediaImage } from "@/components/protected-media-image";
 import { PublicEntityMediaImage } from "@/components/public-entity-media-image";
@@ -1284,6 +1285,7 @@ export default function PublicProfileScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <View style={styles.header}>
+        <HeaderBackButton fallbackHref={profileDestination} />
         <Pressable
           accessibilityLabel="Abrir meu perfil"
           onPress={() => router.replace(profileDestination)}
@@ -1292,7 +1294,7 @@ export default function PublicProfileScreen() {
           <Ionicons color={colors.primaryDark} name="person-circle-outline" size={21} />
           <Text style={styles.backButtonText}>Perfil</Text>
         </Pressable>
-        <View>
+        <View style={styles.headerText}>
           <Text style={styles.headerTitle}>Vitrine</Text>
           <Text style={styles.headerSubtitle}>{isEntrepreneur ? "empreendedor" : isInstitution ? "instituição" : "visitante"}</Text>
         </View>
@@ -1805,6 +1807,7 @@ function ProfileNotFound({ message }: { message: string }) {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <View style={styles.header}>
+        <HeaderBackButton fallbackHref={"/(tabs)/perfil" as Href} />
         <Pressable
           accessibilityLabel="Abrir meu perfil"
           onPress={() => router.replace("/(tabs)/perfil" as Href)}
@@ -1813,7 +1816,7 @@ function ProfileNotFound({ message }: { message: string }) {
           <Ionicons color={colors.primaryDark} name="person-circle-outline" size={21} />
           <Text style={styles.backButtonText}>Perfil</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>Perfil não encontrado</Text>
+        <Text style={[styles.headerTitle, styles.headerText]}>Perfil não encontrado</Text>
       </View>
       <Text style={styles.empty}>{message}</Text>
     </SafeAreaView>
@@ -1825,6 +1828,7 @@ const styles = StyleSheet.create({
   header: { alignItems: "center", backgroundColor: colors.cream, flexDirection: "row", gap: 12, minHeight: 70, paddingHorizontal: 18 },
   backButton: { alignItems: "center", backgroundColor: colors.surface, borderRadius: 22, flexDirection: "row", gap: 5, minHeight: 44, paddingHorizontal: 10 },
   backButtonText: { color: colors.primaryDark, fontSize: 11, fontWeight: "900" },
+  headerText: { flex: 1 },
   headerTitle: { color: colors.primary, fontSize: 18, fontWeight: "900" },
   headerSubtitle: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
   content: { backgroundColor: colors.surfaceMuted, paddingBottom: 36 },

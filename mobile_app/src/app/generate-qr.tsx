@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LocalClock } from "@/components/local-clock";
+import { HeaderBackButton } from "@/components/header-back-button";
 import { MediaImagePicker } from "@/components/media-image-picker";
 import { PaginationControls } from "@/components/pagination-controls";
 import { PublicEntityMediaImage } from "@/components/public-entity-media-image";
@@ -755,6 +756,7 @@ export default function GenerateQrScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <View style={styles.header}>
+        <HeaderBackButton fallbackHref={getAuthenticatedHomeDestination(accessSession.role, accessDestination)} />
         <Pressable
           accessibilityLabel="Abrir meu perfil"
           onPress={() => router.replace(getAuthenticatedHomeDestination(accessSession.role, accessDestination))}

@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ProtectedMediaImage } from "@/components/protected-media-image";
+import { HeaderBackButton } from "@/components/header-back-button";
 import { LoadingScreen } from "@/components/ui";
 import { colors, radius, shadow } from "@/constants/theme";
 import { useApp } from "@/context/app-context";
@@ -297,6 +298,7 @@ export default function MessageConversationScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <View style={styles.header}>
+        <HeaderBackButton fallbackHref={profileDestination} />
         <Pressable
           accessibilityLabel="Abrir meu perfil"
           onPress={() => router.replace(profileDestination)}
